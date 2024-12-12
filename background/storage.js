@@ -9,7 +9,7 @@ var goodInfo = {
     // 商品信息
     goodsName: '',
     goodsID: '',
-    sideSalesTip: '',
+    goodsSales: '',
     shareLink: '',
     goodsLink: "https://mobile.pinduoduo.com/goods.html?goods_id=",
 };
@@ -24,7 +24,7 @@ export function saveGoodsData(data) {
         console.log("storeGoodsData", data);
         const tag = data.tag;
         const goodsInfo = data.goodsInfo;
-        // 存储考勤数据到 chrome storage
+        // 存储数据到 chrome storage
         getStoreGoodsData(tag).then((goodsData) => {
 
             if (!goodsData) {
@@ -74,7 +74,7 @@ export function clearGoodsData(tag) {
 }
 
 export function getStoreGoodsData(tag) {
-    // 存储考勤数据到 chrome storage
+    // 存储数据到 chrome storage
     return new Promise((resolve, reject) => {
         if (tag == 'pdd') {
             chrome.storage.local.get(['goodsData_pdd'], function (result) {

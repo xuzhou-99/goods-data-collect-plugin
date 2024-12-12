@@ -50,7 +50,7 @@
 //                     if (responseData.data) {
 //                         // // 存储到 chrome.storage.local 中
 //                         // chrome.storage.local.set({ attendanceData: data }, () => {
-//                         //     console.log("考勤数据已存储");
+//                         //     console.log("数据已存储");
 //                         // });
 
 //                         // 将数据发送给 content.js

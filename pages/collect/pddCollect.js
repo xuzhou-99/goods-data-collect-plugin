@@ -39,15 +39,15 @@ function initAttendance() {
 // 过滤数据逻辑
 function filterData() {
 
-    console.log("开始从缓存中提取考勤数据")
+    console.log("开始从缓存中提取数据")
 
     chrome.runtime.sendMessage({ action: "getStoreGoodsData", tag: 'pdd', page: 1, pageSize: 100 }, (data) => {
-        console.debug("缓存中提取考勤数据：", data);
+        console.debug("缓存中提取数据：", data);
         if (!data || data.length === 0) {
             totalInfo.innerHTML = `<p style="font-weight: bold;">总计信息将显示在此处。</p>`;
 
             tableBody.innerHTML = "<tr><td colspan='5'>目标范围数据为空，请确保目标页面已加载</td></tr>";
-            console.log("缓存中 目标范围考勤数据为空");
+            console.log("缓存中 目标范围数据为空");
             return;
         }
 
@@ -55,7 +55,7 @@ function filterData() {
 
     })
 
-    console.log("开始从缓存中提取考勤数据--完成")
+    console.log("开始从缓存中提取数据--完成")
 }
 
 function filterCurrentBtn() {
@@ -66,13 +66,13 @@ function filterBeforeBtn() {
     filterData();
 }
 
-// 开始从页面提取考勤数据
+// 开始从页面提取数据
 function fetchGoodData() {
-    console.log("开始从页面提取考勤数据");
+    console.log("开始从页面提取数据");
 
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (!tabs || tabs.length === 0) {
-            alert("请打开目标考勤页面！");
+            alert("请打开目标页面！");
             return;
         }
 
@@ -98,7 +98,7 @@ function fetchGoodData() {
                         activeTab.id,
                         { action: "extractGoodData" },
                         (response) => {
-                            console.log("考勤数据：", response)
+                            console.log("数据：", response)
                             if (response) {
                                 if (response.success) {
 
@@ -110,11 +110,11 @@ function fetchGoodData() {
                                     chrome.runtime.sendMessage({ action: "saveGoodsInfoData", data: goodsInfo }, (response) => {
                                         console.log("保存数据：", response);
                                         if (response.success) {
-                                            // alert("考勤数据已保存");
-                                            console.log("考勤数据已保存");
+                                            // alert("数据已保存");
+                                            console.log("数据已保存");
                                         } else {
-                                            // alert("考勤数据保存失败：" + response.message);
-                                            console.log("考勤数据保存失败：" + response.message);
+                                            // alert("数据保存失败：" + response.message);
+                                            console.log("数据保存失败：" + response.message);
                                         }
                                         filterData()
 
@@ -126,9 +126,9 @@ function fetchGoodData() {
                                     console.log("拉取数据失败：" + response.message);
                                 }
                             } else {
-                                tableBody.innerHTML = "<tr><td colspan='5'>当前页面不支持考勤插件</td></tr>";
+                                tableBody.innerHTML = "<tr><td colspan='5'>当前页面不支持插件</td></tr>";
                                 // alert("拉取数据失败：" + response.message);
-                                console.log("当前页面不支持考勤插件");
+                                console.log("当前页面不支持插件");
                             }
                         }
                     );
@@ -137,20 +137,20 @@ function fetchGoodData() {
         );
     });
 
-    console.log("开始从页面提取考勤数据--完成");
+    console.log("开始从页面提取数据--完成");
 };
 
-// 开始从缓存中提取考勤数据
+// 开始从缓存中提取数据
 function getAttendanceData() {
-    console.log("开始从缓存中提取考勤数据")
+    console.log("开始从缓存中提取数据")
 
     chrome.runtime.sendMessage({ action: "getStoreGoodsData", tag: 'pdd', page: 1, pageSize: 100 }, (data) => {
-        console.debug("缓存中提取考勤数据：", data);
+        console.debug("缓存中提取数据：", data);
         if (!data || data.length === 0) {
             totalInfo.innerHTML = `<p style="font-weight: bold;">总计信息将显示在此处。</p>`;
 
             tableBody.innerHTML = "<tr><td colspan='5'>目标范围数据为空，请确保目标页面已加载</td></tr>";
-            console.log("缓存中 目标范围考勤数据为空");
+            console.log("缓存中 目标范围数据为空");
             return;
         }
 
@@ -158,20 +158,20 @@ function getAttendanceData() {
 
     })
 
-    console.log("开始从缓存中提取考勤数据--完成")
+    console.log("开始从缓存中提取数据--完成")
 };
 
-// 开始从缓存中提取考勤数据
+// 开始从缓存中提取数据
 function clearGoodData() {
-    console.log("开始从缓存中提取考勤数据")
+    console.log("开始从缓存中提取数据")
     chrome.runtime.sendMessage({ action: "clearGoodsInfoData", tag: 'pdd' }, (response) => {
-        console.debug("缓存中提取考勤数据：", response);
+        console.debug("缓存中提取数据：", response);
         if (response.success) {
             fetchGoodData();
         }
     })
 
-    console.log("开始从缓存中提取考勤数据--完成")
+    console.log("开始从缓存中提取数据--完成")
 };
 
 // 加载表格
@@ -195,7 +195,7 @@ function renderTable(data) {
             item.goodsName,
             item.mallName,
             item.goodsPrice,
-            item.sideSalesTip,
+            item.goodsSales,
         ];
         cells.forEach(cellData => {
             const cell = document.createElement("td");
@@ -227,13 +227,13 @@ async function exportToExcel() {
     }
 
     // 准备 Excel 数据：表头和内容
-    const headers = ["商品链接", "商品名称", "店铺名称", "商品价格", "销量提示"];
+    const headers = ["商品链接", "商品名称", "店铺名称", "商品价格", "销量"];
     const rows = data.map((item) => [
         item.goodsLink || "无",
         item.goodsName || "无",
         item.mallName || "无",
         item.goodsPrice || "无",
-        item.sideSalesTip || "无",
+        item.goodsSales || "无",
     ]);
 
     // 创建工作簿和工作表
@@ -309,7 +309,7 @@ function getCachedData() {
     });
 }
 
-// 考勤脚本功能
+// 脚本功能
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     console.log("Attendance: 接收到消息：" + request.action, request, sender)
 

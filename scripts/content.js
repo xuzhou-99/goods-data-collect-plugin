@@ -33,11 +33,11 @@ window.addEventListener("load", () => {
                 chrome.runtime.sendMessage({ action: "saveGoodsInfoData", data: goodsInfo }, (response) => {
                     console.log("保存数据：", response);
                     if (response.success) {
-                        // alert("考勤数据已保存");
-                        console.log("考勤数据已保存");
+                        // alert("数据已保存");
+                        console.log("数据已保存");
                     } else {
-                        // alert("考勤数据保存失败：" + response.message);
-                        console.log("考勤数据保存失败：" + response.message);
+                        // alert("数据保存失败：" + response.message);
+                        console.log("数据保存失败：" + response.message);
                     }
 
                 });
@@ -54,7 +54,7 @@ window.addEventListener("load", () => {
 // 消息监听
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
-    // 提取考勤数据
+    // 提取数据
     if (request.action === "extractGoodData") {
         console.log("接收到的提取数据请求：", request);
         extractGoodData(sendResponse);
@@ -63,23 +63,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 })
 
 /**
- * 添加账号
- */
-function simulateLogin() {
-    // 获取用户名和密码的输入框元素，并填充数据
-    const usernameInput = document.querySelector('input[name="account"]');
-    const passwordInput = document.querySelector('input[name="password"]');
-    usernameInput.value = _username;
-    passwordInput.value = _password;
-
-    // 找到登录按钮并模拟点击
-    const loginButton = document.querySelector('button[type="submit"]');
-    loginButton.click();
-}
-
-
-/**
- * 提取考勤数据
+ * 提取数据
  * @param {*} sendResponse 
  * @returns 
  */
@@ -143,8 +127,7 @@ function extractGoodData(sendResponse) {
                     if (goods) {
                         goodInfo.goodsName = goods.goodsName;
                         goodInfo.goodsID = goods.goodsID;
-                        goodInfo.sideSalesTip = goods.sideSalesTip;
-
+                        goodInfo.goodsSales = goods.sideSalesTip;
                         goodInfo.shareLink = goods.shareLink;
                         goodInfo.goodsLink = "https://mobile.pinduoduo.com/goods.html?goods_id=" + goodInfo.goodsID;
 
