@@ -1,0 +1,60 @@
+/* popup.css */
+body {
+    width: 300px;
+    height: 220px;
+    padding: 10px;
+    background-color: #f2f2f2;
+    font-family: Arial, sans-serif;
+    margin: 10px;
+    text-align: center;
+  }
+
+  .hidden {
+    display: none;
+  }
+
+  #popup-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+
+  .button {
+    display: block;
+    margin: 10px auto;
+    padding: 10px;
+    background-color: #007bff;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 5px;
+    width: 80%;
+  }
+
+  .button:hover {
+    background-color: #0056b3;
+  }
+
+  input {
+    margin: 10px auto;
+    padding: 8px;
+    width: 80%;
+    font-size: 14px;
+  }
+
+  button {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    width: 80%;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background-color: #0056b3;
+  }
