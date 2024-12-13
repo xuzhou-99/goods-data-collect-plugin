@@ -6,65 +6,57 @@ const tableBody = document.getElementById("result");
 document.getElementById("back").addEventListener("click", () => { window.location.href = "/popup/popup.html"; });
 
 // 查询
-document.getElementById("filterBtn").addEventListener("click", filterData);
-// 当前周期
-document.getElementById("filterCurrentBtn").addEventListener("click", filterCurrentBtn);
-// 上一周期
-document.getElementById("filterBeforeBtn").addEventListener("click", filterBeforeBtn);
-// 报表数据
+document.getElementById("filterBtn").addEventListener("click", loadGoodsData);
+// 提取数据
 document.getElementById("extractInfo").addEventListener("click", fetchGoodData);
 // 报表数据
-document.getElementById("clearAll").addEventListener("click", clearGoodData);
+document.getElementById("clearAll").addEventListener("click", clearGoodsData);
 // 报表数据
 document.getElementById("exportAll").addEventListener("click", exportToExcel);
 
 const goodsList = [];
 
 // 初始化表格
-filterData();
+loadGoodsData();
 
 // 初次加载
-initAttendance();
+init();
 
 
-function initAttendance() {
-    console.log("开始 检测并注入脚本")
+function init() {
+    console.log("检测并注入脚本 开始...")
     // 检测并注入到所有 iframe
     document.querySelectorAll("iframe").forEach((iframe) => {
         chrome.runtime.sendMessage({ action: "injectContentScript", frameId: iframe.id });
     });
-    console.log("检测并注入脚本完成")
+    console.log("检测并注入脚本 完成")
 }
 
-// 过滤数据逻辑
-function filterData() {
-
-    console.log("开始从缓存中提取数据")
+// 加载数据
+function loadGoodsData() {
+    console.log("加载缓存数据")
 
     chrome.runtime.sendMessage({ action: "getStoreGoodsData", tag: 'pdd', page: 1, pageSize: 100 }, (data) => {
-        console.debug("缓存中提取数据：", data);
-        if (!data || data.length === 0) {
-            totalInfo.innerHTML = `<p style="font-weight: bold;">总计信息将显示在此处。</p>`;
-
-            tableBody.innerHTML = "<tr><td colspan='5'>目标范围数据为空，请确保目标页面已加载</td></tr>";
-            console.log("缓存中 目标范围数据为空");
-            return;
-        }
-
+        console.debug("消息结果：", data);
         renderTable(data);
-
     })
 
-    console.log("开始从缓存中提取数据--完成")
+    console.log("加载缓存数据--完成")
 }
 
-function filterCurrentBtn() {
-    filterData();
-}
+// 清空数据
+function clearGoodsData() {
+    console.log("删除缓存数据")
 
-function filterBeforeBtn() {
-    filterData();
-}
+    chrome.runtime.sendMessage({ action: "clearGoodsInfoData", tag: 'pdd' }, (response) => {
+        console.debug("消息结果：", response);
+        if (response.success) {
+            loadGoodsData();
+        }
+    })
+
+    console.log("删除缓存数据--完成")
+};
 
 // 开始从页面提取数据
 function fetchGoodData() {
@@ -94,44 +86,33 @@ function fetchGoodData() {
                 if (chrome.runtime.lastError) {
                     alert("注入脚本失败：" + chrome.runtime.lastError.message);
                 } else {
-                    chrome.tabs.sendMessage(
-                        activeTab.id,
-                        { action: "extractGoodData" },
-                        (response) => {
-                            console.log("数据：", response)
-                            if (response) {
-                                if (response.success) {
+                    chrome.tabs.sendMessage(activeTab.id, { action: "extractGoodData" }, (response) => {
+                        console.log("数据：", response)
+                        if (response && response.success) {
 
-                                    const goodsInfo = {
-                                        tag: 'pdd',
-                                        goodsInfo: response.goodInfo
-                                    }
-
-                                    chrome.runtime.sendMessage({ action: "saveGoodsInfoData", data: goodsInfo }, (response) => {
-                                        console.log("保存数据：", response);
-                                        if (response.success) {
-                                            // alert("数据已保存");
-                                            console.log("数据已保存");
-                                        } else {
-                                            // alert("数据保存失败：" + response.message);
-                                            console.log("数据保存失败：" + response.message);
-                                        }
-                                        filterData()
-
-                                    });
-
-                                } else {
-                                    tableBody.innerHTML = "<tr><td colspan='5'>未能获取数据</td></tr>";
-                                    // alert("拉取数据失败：" + response.message);
-                                    console.log("拉取数据失败：" + response.message);
-                                }
-                            } else {
-                                tableBody.innerHTML = "<tr><td colspan='5'>当前页面不支持插件</td></tr>";
-                                // alert("拉取数据失败：" + response.message);
-                                console.log("当前页面不支持插件");
+                            const goodsInfo = {
+                                tag: 'pdd',
+                                goodsInfo: response.goodInfo
                             }
+
+                            chrome.runtime.sendMessage({ action: "saveGoodsInfoData", data: goodsInfo }, (response) => {
+                                console.log("保存数据：", response);
+                                if (response.success) {
+                                    // alert("数据已保存");
+                                    console.log("数据已保存");
+                                    loadGoodsData();
+                                } else {
+                                    // alert("数据保存失败：" + response.message);
+                                    console.log("数据保存失败：" + response.message);
+                                }
+                            });
+
+                        } else {
+                            tableBody.innerHTML = "<tr><td colspan='5'>未能获取数据</td></tr>";
+                            // alert("拉取数据失败：" + response.message);
+                            console.log("拉取数据失败", response ? response.message : '');
                         }
-                    );
+                    });
                 }
             }
         );
@@ -140,47 +121,13 @@ function fetchGoodData() {
     console.log("开始从页面提取数据--完成");
 };
 
-// 开始从缓存中提取数据
-function getAttendanceData() {
-    console.log("开始从缓存中提取数据")
-
-    chrome.runtime.sendMessage({ action: "getStoreGoodsData", tag: 'pdd', page: 1, pageSize: 100 }, (data) => {
-        console.debug("缓存中提取数据：", data);
-        if (!data || data.length === 0) {
-            totalInfo.innerHTML = `<p style="font-weight: bold;">总计信息将显示在此处。</p>`;
-
-            tableBody.innerHTML = "<tr><td colspan='5'>目标范围数据为空，请确保目标页面已加载</td></tr>";
-            console.log("缓存中 目标范围数据为空");
-            return;
-        }
-
-        renderTable(data);
-
-    })
-
-    console.log("开始从缓存中提取数据--完成")
-};
-
-// 开始从缓存中提取数据
-function clearGoodData() {
-    console.log("开始从缓存中提取数据")
-    chrome.runtime.sendMessage({ action: "clearGoodsInfoData", tag: 'pdd' }, (response) => {
-        console.debug("缓存中提取数据：", response);
-        if (response.success) {
-            fetchGoodData();
-        }
-    })
-
-    console.log("开始从缓存中提取数据--完成")
-};
-
 // 加载表格
 function renderTable(data) {
     tableBody.innerHTML = ""; // 清空表格
-    if (data.length === 0) {
+    if (data || data.length === 0) {
         tableBody.innerHTML = `
         <tr>
-            <td colspan="6">无数据</td>
+            <td colspan="5">无数据</td>
         </tr>`;
         totalInfo.innerHTML = `<p style="font-weight: bold;">总计信息将显示在此处。</p>`;
         return;
@@ -216,6 +163,7 @@ function renderTable(data) {
     totalInfo.appendChild(countElement);
 };
 
+// 导出数据
 async function exportToExcel() {
     console.log("开始导出数据...");
 
@@ -253,7 +201,6 @@ async function exportToExcel() {
     alert(`数据已导出为文件：${fileName}`);
 
 }
-
 
 // 应用样式到工作表
 function applyStyles(worksheet, columnCount) {
@@ -309,6 +256,7 @@ function getCachedData() {
     });
 }
 
+
 // 脚本功能
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     console.log("Attendance: 接收到消息：" + request.action, request, sender)
@@ -316,6 +264,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     if (request.action === "axiosResponseIntercepted") {
         console.log("Intercepted Axios Response in Background Script:", request.data);
 
-        filterData();
+        loadGoodsData();
     }
 })

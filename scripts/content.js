@@ -3,7 +3,8 @@ console.log("Content script loaded on:", window.location.href);
 
 // 监听页面的 postMessage
 window.addEventListener("message", (event) => {
-    if (event.source !== window) return;
+    if (event.source !== window)
+        return;
 
     if (event.data.type === "axios-response") {
         console.log("Received Axios Response in Content Script:", event.data);
@@ -19,7 +20,7 @@ window.addEventListener("message", (event) => {
 
 // 监听页面加载完成
 window.addEventListener("load", () => {
-    console.log("页面加载完成，准备自动提取数据");
+    console.log("页面加载完成");
 
     if (isPinduoduoPage()) {
         console.log("检测到目标页面，开始提取数据");
@@ -45,10 +46,8 @@ window.addEventListener("load", () => {
                 console.error("提取数据失败", response.message);
             }
         });
-
-    } else {
-        console.log("当前页面非目标页面，跳过数据提取");
     }
+
 });
 
 // 消息监听
@@ -136,7 +135,6 @@ function extractGoodData(sendResponse) {
                         }
                     }
                 }
-
             }
         }
 
@@ -150,22 +148,17 @@ function extractGoodData(sendResponse) {
     }
 }
 
+// 将外部脚本动态插入页面
 function injectScriptOnce(file) {
     if (!document.querySelector(`script[src="${chrome.runtime.getURL(file)}"]`)) {
-        injectScript(file);
+        const script = document.createElement("script");
+        script.src = chrome.runtime.getURL(file); // 获取扩展内的脚本路径
+        script.onload = function () {
+            this.remove(); // 移除脚本标签，保持页面干净
+        };
+        document.documentElement.appendChild(script);
     }
 }
-
-// 将外部脚本动态插入页面
-function injectScript(file) {
-    const script = document.createElement("script");
-    script.src = chrome.runtime.getURL(file); // 获取扩展内的脚本路径
-    script.onload = function () {
-        this.remove(); // 移除脚本标签，保持页面干净
-    };
-    document.documentElement.appendChild(script);
-}
-
 
 // 监听 DOM 变化（适用于 SPA 页面）
 const observer = new MutationObserver((mutationsList) => {
@@ -200,13 +193,11 @@ function isPinduoduoPage() {
         return;
     }
 
-    console.log("【GoodsCollector】检测到进入目标页面" + " url:" + window.location.href);
-    console.log("【GoodsCollector】开始注入脚本");
+    console.log("【GoodsCollector】 检测到进入目标页面, 开始注入脚本, url:" + window.location.href);
 
-    // 插入 goodscollect_inject.js 脚本
     injectScriptOnce("scripts/goodscollect_inject.js");
-    console.log("插入 goodscollect_inject.js 脚本完成");
 
-    console.log('【GoodsCollector】脚本已加载');
+    console.log("【GoodsCollector】 脚本已加载");
+
 })();
 
