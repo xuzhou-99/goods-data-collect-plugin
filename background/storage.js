@@ -3,6 +3,8 @@
 // 商品的链接，标题，店铺名，价格，销量
 /*
 var goodInfo = {
+    // 排序
+    tabOrder: '',
     // 店铺信息
     mallId: '',
     mallName: '',
@@ -47,6 +49,10 @@ export function saveGoodsData(data) {
 
 
             if (goodsData && goodsData.length > 0) {
+                goodsData.sort(function (a, b) {
+                    return a.tabOrder - b.tabOrder;
+                });
+
                 if (data.tag == 'pdd') {
                     chrome.storage.local.set({ goodsData_pdd: goodsData }, () => {
                         console.log("数据已存储到 localStorage，size:" + goodsData.length);
@@ -84,6 +90,10 @@ export function getStoreGoodsData(tag) {
                     var data = result.goodsData_pdd;
                     if (!data) {
                         data = [];
+                    } else {
+                        data.sort(function (a, b) {
+                            return a.tabOrder - b.tabOrder;
+                        });
                     }
                     resolve(data);
                 }

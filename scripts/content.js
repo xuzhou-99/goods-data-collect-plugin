@@ -1,26 +1,54 @@
-
 console.log("Content script loaded on:", window.location.href);
+
+// 当前 tab 的序列号
+let currentTabOrder = null;
 
 // 监听页面的 postMessage
 window.addEventListener("message", (event) => {
+    console.log("Window Message:", event);
     if (event.source !== window)
         return;
 
     if (event.data.type === "axios-response") {
-        console.log("Received Axios Response in Content Script:", event.data);
+        const goodsInfo = {
+            tag: 'pdd',
+            goodsInfo: response.goodInfo
+        }
 
         // 如果需要传递给 background.js，可使用 chrome.runtime.sendMessage
-        chrome.runtime.sendMessage({
-            action: "saveGoodsInfoData",
-            tag: '',
-            goodsInfo: event.data.userInfo,
-        });
+        chrome.runtime.sendMessage({ action: "saveGoodsInfoData", data: goodsInfo, });
     }
 });
 
+
+document.addEventListener("DOMContentLoaded", () => {
+    // 在页面加载完成前请求序列号
+    getTabOrder();
+});
+
+async function getTabOrder() {
+    return new Promise((resolve) => {
+        if (!currentTabOrder) {
+            chrome.runtime.sendMessage({ action: "getTabOrder" }, (response) => {
+                if (response.success) {
+                    console.log("当前标签页序列号：", response.order);
+                    // 将序列号存储或处理
+                    currentTabOrder = response.order;
+                    resolve(currentTabOrder);
+                } else {
+                    console.error("获取序列号失败：", response.message);
+                    resolve(null);
+                }
+            });
+        }
+        resolve(currentTabOrder);
+    });
+}
+
+
 // 监听页面加载完成
 window.addEventListener("load", () => {
-    console.log("页面加载完成");
+    console.log("页面加载完成", window.location.href, getTabOrder());
 
     if (isPinduoduoPage()) {
         console.log("检测到目标页面，开始提取数据");
@@ -31,6 +59,7 @@ window.addEventListener("load", () => {
                     goodsInfo: response.goodInfo
                 }
                 console.log("提取数据成功，发送消息至页面", goodsInfo);
+
                 chrome.runtime.sendMessage({ action: "saveGoodsInfoData", data: goodsInfo }, (response) => {
                     console.log("保存数据：", response);
                     if (response.success) {
@@ -52,10 +81,16 @@ window.addEventListener("load", () => {
 
 // 消息监听
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+    console.log("Background Message:", request);
+
+    // 保存序列号
+    if (request.action === "assignTabOrder") {
+        currentTabOrder = request.order;
+        console.log(`当前 Tab 分配的序列号：${currentTabOrder}`);
+    }
 
     // 提取数据
     if (request.action === "extractGoodData") {
-        console.log("接收到的提取数据请求：", request);
         extractGoodData(sendResponse);
         return true; // 保持响应异步
     }
@@ -105,9 +140,12 @@ function extractGoodData(sendResponse) {
         // console.log("goodInfoStr：", goodInfoStr);
 
         const goodInfoJson = JSON.parse(goodInfoStr);
+        // const goodInfoJson = window.rawData;
         console.log("goodInfoJson：", goodInfoJson);
 
-        var goodInfo = {};
+        var goodInfo = {
+            tabOrder: currentTabOrder, // 附带序列号
+        };
         if (goodInfoJson && goodInfoJson.store) {
             // 商品的链接，标题，店铺名，价格，销量
             const store = goodInfoJson.store;
@@ -132,6 +170,10 @@ function extractGoodData(sendResponse) {
 
                         if (goods.ui && goods.ui.new_price_section) {
                             goodInfo.goodsPrice = goods.ui.new_price_section.price;
+                        }
+
+                        if (goods.statusExplain) {
+                            goodInfo.statusExplain = goods.statusExplain;
                         }
                     }
                 }
@@ -181,10 +223,12 @@ const observer = new MutationObserver((mutationsList) => {
  * 拼多多网站
  * @returns 拼多多网站
  */
-function isPinduoduoPage() {
-    return /mobile\.(pinduoduo|yangkeduo)\.com\/goods\.html/.test(window.location.href);
+function isPinduoduoPage(url) {
+    if (!url) {
+        url = window.location.href;
+    }
+    return /mobile\.(pinduoduo|yangkeduo)\.com\/(goods|good.*)\.html/.test(url);
 }
-
 
 // --------------------------------------- 商品采集 插件 --------------------------------------- //
 (function () {

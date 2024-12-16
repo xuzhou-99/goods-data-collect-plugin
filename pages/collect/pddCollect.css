@@ -170,7 +170,7 @@ body {
     transition: background-color 0.3s;
   }
   
-  table tbody td[colspan="5"] {
+  table tbody td[colspan="6"] {
     text-align: center;
     color: #666;
     font-style: italic;

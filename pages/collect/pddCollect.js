@@ -70,10 +70,9 @@ function fetchGoodData() {
 
         const activeTab = tabs[0];
         console.log("插件进入页面：", activeTab);
-        var shotAttendance = activeTab.url.includes("mobile.pinduoduo.com/goods.html") || activeTab.url.includes("mobile.yangkeduo.com/goods.html");
-        if (!shotAttendance) {
+        if (!isPinduoduoPage(activeTab.url)) {
             console.log("当前页面不支持插件");
-            tableBody.innerHTML = "<tr><td colspan='5'>未能获取数据</td></tr>";
+            tableBody.innerHTML = "<tr><td colspan='6'>未能获取数据</td></tr>";
             return;
         }
 
@@ -108,7 +107,7 @@ function fetchGoodData() {
                             });
 
                         } else {
-                            tableBody.innerHTML = "<tr><td colspan='5'>未能获取数据</td></tr>";
+                            tableBody.innerHTML = "<tr><td colspan='6'>未能获取数据</td></tr>";
                             // alert("拉取数据失败：" + response.message);
                             console.log("拉取数据失败", response ? response.message : '');
                         }
@@ -124,10 +123,10 @@ function fetchGoodData() {
 // 加载表格
 function renderTable(data) {
     tableBody.innerHTML = ""; // 清空表格
-    if (data || data.length === 0) {
+    if (!data || data.length === 0) {
         tableBody.innerHTML = `
         <tr>
-            <td colspan="5">无数据</td>
+            <td colspan="6">无数据</td>
         </tr>`;
         totalInfo.innerHTML = `<p style="font-weight: bold;">总计信息将显示在此处。</p>`;
         return;
@@ -143,6 +142,7 @@ function renderTable(data) {
             item.mallName,
             item.goodsPrice,
             item.goodsSales,
+            item.statusExplain,
         ];
         cells.forEach(cellData => {
             const cell = document.createElement("td");
@@ -175,13 +175,14 @@ async function exportToExcel() {
     }
 
     // 准备 Excel 数据：表头和内容
-    const headers = ["商品链接", "商品名称", "店铺名称", "商品价格", "销量"];
+    const headers = ["商品链接", "商品名称", "店铺名称", "商品价格", "销量", "备注"];
     const rows = data.map((item) => [
         item.goodsLink || "无",
         item.goodsName || "无",
         item.mallName || "无",
         item.goodsPrice || "无",
         item.goodsSales || "无",
+        item.statusExplain || "无",
     ]);
 
     // 创建工作簿和工作表
@@ -257,13 +258,14 @@ function getCachedData() {
 }
 
 
-// 脚本功能
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-    console.log("Attendance: 接收到消息：" + request.action, request, sender)
 
-    if (request.action === "axiosResponseIntercepted") {
-        console.log("Intercepted Axios Response in Background Script:", request.data);
-
-        loadGoodsData();
+/**
+ * 拼多多网站
+ * @returns 拼多多网站
+ */
+function isPinduoduoPage(url) {
+    if (!url) {
+        url = window.location.href;
     }
-})
+    return /mobile\.(pinduoduo|yangkeduo)\.com\/(goods|good.*)\.html/.test(url);
+}
