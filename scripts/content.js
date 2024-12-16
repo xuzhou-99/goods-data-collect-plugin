@@ -20,12 +20,6 @@ window.addEventListener("message", (event) => {
     }
 });
 
-
-document.addEventListener("DOMContentLoaded", () => {
-    // 在页面加载完成前请求序列号
-    getTabOrder();
-});
-
 async function getTabOrder() {
     return new Promise((resolve) => {
         if (!currentTabOrder) {
@@ -143,6 +137,11 @@ function extractGoodData(sendResponse) {
         // const goodInfoJson = window.rawData;
         console.log("goodInfoJson：", goodInfoJson);
 
+        var webUrl = draggableDocument.location.origin + draggableDocument.location.pathname;
+        if (!webUrl) {
+            webUrl = "https://mobile.pinduoduo.com/goods.html";
+        }
+
         var goodInfo = {
             tabOrder: currentTabOrder, // 附带序列号
         };
@@ -166,7 +165,7 @@ function extractGoodData(sendResponse) {
                         goodInfo.goodsID = goods.goodsID;
                         goodInfo.goodsSales = goods.sideSalesTip;
                         goodInfo.shareLink = goods.shareLink;
-                        goodInfo.goodsLink = "https://mobile.pinduoduo.com/goods.html?goods_id=" + goodInfo.goodsID;
+                        goodInfo.goodsLink = webUrl + "?goods_id=" + goodInfo.goodsID;
 
                         if (goods.ui && goods.ui.new_price_section) {
                             goodInfo.goodsPrice = goods.ui.new_price_section.price;
