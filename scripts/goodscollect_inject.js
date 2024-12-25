@@ -1,129 +1,162 @@
-// /**
-//  * 拦截 Axios 请求
-//  */
-// const injectAxiosHijack = () => {
-//     // 检查是否存在 axios
-//     if (window.axios) {
-//         // 保存原始的 axios 实例
-//         const originalAxios = window.axios;
+/**
+ * 数据获取
+ */
+const injectGoodsCollectHijack = () => {
 
-//         // 添加响应拦截器
-//         originalAxios.interceptors.response.use(
-//             function (response) {
-//                 // 判断是否是目标接口
-//                 if (response.config.url.includes("/app/attendance/attstatistics/loadDetailData.do")) {
-//                     console.log("拦截到的 Axios 数据：", response);
+    /**
+     * 拼多多网站
+     * @returns 拼多多网站
+     */
+    function isPinduoduoPage(url) {
+        if (!url) {
+            url = window.location.href;
+        }
+        return /mobile\.(pinduoduo|yangkeduo)\.com\/(goods|good.*)\.html/.test(url);
+    }
 
-//                     // 将数据发送给 content.js
-//                     window.postMessage({
-//                         type: "axios-response",
-//                         data: response.data,
-//                     }, "*");
-//                 }
-//                 return response;
-//             },
-//             function (error) {
-//                 return Promise.reject(error);
-//             }
-//         );
-//     } else {
-//         console.debug("Axios not found on this page.");
-//     }
-// }
+    /**
+     * 提取数据-PDD
+     * @param {*} sendResponse 
+     * @returns 
+     */
+    function extractPddGoodData(sendResponse) {
+        console.log("接收到提取商品数据消息，开始提取")
 
-// /**
-//  * 拦截 fetch 请求
-//  */
-// const injectFetchHijack = () => {
-//     const originalFetch = window.fetch;
-//     window.fetch = async function (...args) {
-//         const response = await originalFetch.apply(this, args);
-//         const clonedResponse = response.clone();
+        try {
+            // 从页面提取数据逻辑
+            let targetDoc;
+            if (isPinduoduoPage()) {
+                targetDoc = document;
+            }
+            if (!targetDoc) {
+                sendResponse({ success: false, message: "未进入到指定页面", });
+                return;
+            }
 
-//         console.debug("【QinWorkPlugin】拦截到fetch请求：", args);
+            const goodInfoJson = window.rawData;
+            if (!goodInfoJson) {
+                var goodInfoScripts = [];
+                const scripts = targetDoc.scripts;
+                for (var i = 0; i < scripts.length; i++) {
+                    if (scripts[i].textContent) {
+                        var content = scripts[i].textContent;
+                        if (content && content.indexOf('window.rawData') > 0) {
+                            goodInfoScripts.push(scripts[i]);
+                        }
+                    }
+                }
 
-//         if (args[0].includes("/app/attendance/attstatistics/loadDetailData.do")) {
-//             clonedResponse.json().then((responseData) => {
-//                 console.log("拦截到的 fetch 数据：", responseData);
+                if (goodInfoScripts.length == 0) {
+                    console.log("数据未找到");
+                    sendResponse({ success: false, message: "数据未找到", });
+                    return;
+                }
+                var goodInfoStr = goodInfoScripts[0].textContent.trim();
+                goodInfoStr = goodInfoStr.replace('window.rawData=', '');
+                if (goodInfoStr.endsWith(";")) {
+                    goodInfoStr = goodInfoStr.substring(0, goodInfoStr.length - 1);
+                }
+                // console.log("goodInfoStr：", goodInfoStr);
 
-//                 if (responseData) {
-//                     if (responseData.data) {
-//                         // // 存储到 chrome.storage.local 中
-//                         // chrome.storage.local.set({ attendanceData: data }, () => {
-//                         //     console.log("数据已存储");
-//                         // });
+                goodInfoJson = JSON.parse(goodInfoStr);
+            }
 
-//                         // 将数据发送给 content.js
-//                         window.postMessage({
-//                             type: "axios-response",
-//                             data: responseData.data,
-//                         }, "*");
-//                     }
-//                 }
-//             });
-//         }
-//         return response;
-//     };
-// };
+            console.log("goodInfoJson：", goodInfoJson);
+            if (!goodInfoJson) {
+                sendResponse({ success: false, message: "数据未找到", });
+                return;
+            }
 
-// /**
-//  * 拦截 XMLHttpRequest 请求
-//  */
-// const injectXHRHijack = () => {
-//     const originalXHR = XMLHttpRequest.prototype.open;
-//     XMLHttpRequest.prototype.open = function (method, url, ...args) {
-//         console.debug("【QinWorkPlugin】拦截到xhr请求：", url);
-//         if (url.includes("/app/attendance/attstatistics/loadDetailData.do")) {
-//             console.log("拦截到的 XHR 请求：", args);
-//             this.addEventListener("load", function () {
-//                 try {
-//                     var userInfo;
-//                     if (this.__sentry_xhr_v3__) {
-//                         var requestBody = this.__sentry_xhr_v3__.body;
-//                         if (requestBody) {
-//                             const requestBodyJson = JSON.parse(requestBody);
-//                             console.log("拦截到的 XHR 数据：", requestBodyJson);
-//                             userInfo = {
-//                                 userId: requestBodyJson.userId,
-//                                 userName: requestBodyJson.userName
-//                             }
-//                         }
-//                     }
-//                     const responseData = JSON.parse(this.responseText);
-//                     console.log("拦截到的 XHR 数据：", responseData);
+            var webUrl = targetDoc.location.origin + targetDoc.location.pathname;
+            if (!webUrl) {
+                webUrl = "https://mobile.pinduoduo.com/goods.html";
+            }
 
-//                     if (responseData) {
-//                         if (responseData.data) {
-//                             // 将数据发送给 content.js
-//                             window.postMessage({
-//                                 type: "axios-response",
-//                                 data: responseData.data,
-//                                 userInfo: userInfo,
-//                             }, "*");
+            // 存放提取的商品数据
+            var goodInfo = {
+                // tabOrder: currentTabOrder, // 附带序列号
+            };
+            if (goodInfoJson && goodInfoJson.store && goodInfoJson.store.initDataObj) {
+                // 商品的链接，标题，店铺名，价格，销量
+                const store = goodInfoJson.store;
+                const initDataObj = store.initDataObj;
+                // 店铺信息
+                const mall = initDataObj.mall;
+                if (mall) {
+                    goodInfo.mallId = mall.mallId;
+                    goodInfo.mallName = mall.mallName;
+                }
 
-//                         }
-//                     }
+                // 商品信息
+                const goods = initDataObj.goods;
+                if (goods) {
+                    goodInfo.goodsName = goods.goodsName;
+                    goodInfo.goodsID = goods.goodsID;
+                    goodInfo.goodsSales = goods.sideSalesTip;
+                    goodInfo.shareLink = goods.shareLink;
+                    goodInfo.goodsLink = webUrl + "?goods_id=" + goodInfo.goodsID;
 
-//                 } catch (error) {
-//                     console.warn("解析 XHR 数据失败：", error);
-//                 }
-//             });
-//         }
-//         return originalXHR.apply(this, [method, url, ...args]);
-//     };
-// };
+                    if (goods.ui && goods.ui.new_price_section) {
+                        goodInfo.goodsPrice = goods.ui.new_price_section.price;
+                    }
 
-// (function () {
-//     console.debug("Goods info collect Hijacking Start...");
+                    if (goods.statusExplain) {
+                        goodInfo.statusExplain = goods.statusExplain;
+                    }
+                }
+            }
 
-//     injectFetchHijack();
-//     console.debug("Fetch 拦截注入完成");
+            sendResponse({ success: true, goodInfo });
+        } catch (error) {
+            sendResponse({ success: false, message: "提取数据失败" });
+        }
+    }
 
-//     injectXHRHijack();
-//     console.debug("XHR 拦截注入完成");
+    console.log("【GoodsCollector】 Extracting data from Pinduoduo page");
 
-//     injectAxiosHijack();
-//     console.debug("Axios 拦截注入完成");
+    // 提取数据
+    extractPddGoodData((response) => {
+        if (response.success) {
+            const goodInfo = response.goodInfo;
+            const goodsInfo = {
+                tag: 'pdd',
+                goodsInfo: goodInfo
+            }
+            console.log("提取数据成功，发送消息至页面", goodsInfo);
 
-//     console.debug("Hijacking Finish!");
-// })();
+            // chrome.runtime.sendMessage({ action: "saveGoodsInfoData", data: goodsInfo }, (response) => {
+            //     console.log("保存数据：", response);
+            //     if (response.success) {
+            //         // alert("数据已保存");
+            //         console.log("数据已保存");
+            //     } else {
+            //         // alert("数据保存失败：" + response.message);
+            //         console.log("数据保存失败：" + response.message);
+            //     }
+
+            // });
+
+
+            // 将数据发送给 content.js
+            window.postMessage({
+                type: "extract-data-response",
+                tag: "pdd",
+                goodInfo: goodInfo,
+            }, "*");
+
+        } else {
+            console.error("提取数据失败", response.message);
+        }
+    });
+
+    console.log("【GoodsCollector】 Extracting data Finished");
+
+
+};
+
+(function () {
+    console.log("【GoodsCollector】 检测到进入目标页面, 开始注入脚本, url:" + window.location.href);
+
+    injectGoodsCollectHijack("scripts/goodscollect_inject.js");
+
+})();

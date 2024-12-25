@@ -9,14 +9,19 @@ window.addEventListener("message", (event) => {
     if (event.source !== window)
         return;
 
-    if (event.data.type === "axios-response") {
-        const goodsInfo = {
-            tag: 'pdd',
-            goodsInfo: response.goodInfo
+    if (event.data.type === "extract-data-response") {
+        const goodsData = {
+            tag: event.data.tag,
+            goodsInfo: event.data.goodInfo
+        }
+
+        // 附带序列号
+        if (!goodsData.goodsInfo.tabOrder) {
+            goodsData.goodsInfo.tabOrder = currentTabOrder
         }
 
         // 如果需要传递给 background.js，可使用 chrome.runtime.sendMessage
-        chrome.runtime.sendMessage({ action: "saveGoodsInfoData", data: goodsInfo, });
+        chrome.runtime.sendMessage({ action: "saveGoodsInfoData", data: goodsData, });
     }
 });
 
@@ -24,6 +29,7 @@ async function getTabOrder() {
     return new Promise((resolve) => {
         if (!currentTabOrder) {
             chrome.runtime.sendMessage({ action: "getTabOrder" }, (response) => {
+                console.log(response);
                 if (response.success) {
                     console.log("当前标签页序列号：", response.order);
                     // 将序列号存储或处理
@@ -46,29 +52,7 @@ window.addEventListener("load", () => {
 
     if (isPinduoduoPage()) {
         console.log("检测到目标页面，开始提取数据");
-        extractGoodData((response) => {
-            if (response.success) {
-                const goodsInfo = {
-                    tag: 'pdd',
-                    goodsInfo: response.goodInfo
-                }
-                console.log("提取数据成功，发送消息至页面", goodsInfo);
-
-                chrome.runtime.sendMessage({ action: "saveGoodsInfoData", data: goodsInfo }, (response) => {
-                    console.log("保存数据：", response);
-                    if (response.success) {
-                        // alert("数据已保存");
-                        console.log("数据已保存");
-                    } else {
-                        // alert("数据保存失败：" + response.message);
-                        console.log("数据保存失败：" + response.message);
-                    }
-
-                });
-            } else {
-                console.error("提取数据失败", response.message);
-            }
-        });
+        injectScriptOnce("scripts/goodscollect_inject.js");
     }
 
 });
@@ -83,111 +67,14 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         console.log(`当前 Tab 分配的序列号：${currentTabOrder}`);
     }
 
-    // 提取数据
-    if (request.action === "extractGoodData") {
-        extractGoodData(sendResponse);
-        return true; // 保持响应异步
-    }
+    // // 提取数据
+    // if (request.action === "extractGoodData") {
+    //     extractPddGoodData(sendResponse);
+    //     return true; // 保持响应异步
+    // }
 })
 
-/**
- * 提取数据
- * @param {*} sendResponse 
- * @returns 
- */
-function extractGoodData(sendResponse) {
-    console.log("接收到提取商品数据消息，开始提取")
 
-    try {
-        // 从页面提取数据逻辑
-        let draggableDocument;
-        if (isPinduoduoPage()) {
-            draggableDocument = document;
-        }
-        if (!draggableDocument) {
-            console.log("未进入到指定页面");
-            sendResponse({ success: false, message: "未进入到指定页面", });
-            return;
-        }
-
-        var goodInfoScripts = [];
-        const scripts = draggableDocument.scripts;
-        for (var i = 0; i < scripts.length; i++) {
-            if (scripts[i].textContent) {
-                var content = scripts[i].textContent;
-                if (content && content.indexOf('window.rawData') > 0) {
-                    goodInfoScripts.push(scripts[i]);
-                }
-            }
-        }
-
-        if (goodInfoScripts.length == 0) {
-            console.log("数据未找到");
-            sendResponse({ success: false, message: "数据未找到", });
-            return;
-        }
-        var goodInfoStr = goodInfoScripts[0].textContent.trim();
-        goodInfoStr = goodInfoStr.replace('window.rawData=', '');
-        if (goodInfoStr.endsWith(";")) {
-            goodInfoStr = goodInfoStr.substring(0, goodInfoStr.length - 1);
-        }
-        // console.log("goodInfoStr：", goodInfoStr);
-
-        const goodInfoJson = JSON.parse(goodInfoStr);
-        // const goodInfoJson = window.rawData;
-        console.log("goodInfoJson：", goodInfoJson);
-
-        var webUrl = draggableDocument.location.origin + draggableDocument.location.pathname;
-        if (!webUrl) {
-            webUrl = "https://mobile.pinduoduo.com/goods.html";
-        }
-
-        var goodInfo = {
-            tabOrder: currentTabOrder, // 附带序列号
-        };
-        if (goodInfoJson && goodInfoJson.store) {
-            // 商品的链接，标题，店铺名，价格，销量
-            const store = goodInfoJson.store;
-            if (store.initDataObj) {
-                const initDataObj = store.initDataObj;
-                if (initDataObj) {
-                    // 店铺信息
-                    const mall = initDataObj.mall;
-                    if (mall) {
-                        goodInfo.mallId = mall.mallId;
-                        goodInfo.mallName = mall.mallName;
-                    }
-
-                    // 商品信息
-                    const goods = initDataObj.goods;
-                    if (goods) {
-                        goodInfo.goodsName = goods.goodsName;
-                        goodInfo.goodsID = goods.goodsID;
-                        goodInfo.goodsSales = goods.sideSalesTip;
-                        goodInfo.shareLink = goods.shareLink;
-                        goodInfo.goodsLink = webUrl + "?goods_id=" + goodInfo.goodsID;
-
-                        if (goods.ui && goods.ui.new_price_section) {
-                            goodInfo.goodsPrice = goods.ui.new_price_section.price;
-                        }
-
-                        if (goods.statusExplain) {
-                            goodInfo.statusExplain = goods.statusExplain;
-                        }
-                    }
-                }
-            }
-        }
-
-        console.log("goodInfo:", goodInfo);
-
-        sendResponse({ success: true, goodInfo });
-
-    } catch (error) {
-        console.error("提取数据失败：", error);
-        sendResponse({ success: false, message: "提取数据失败" });
-    }
-}
 
 // 将外部脚本动态插入页面
 function injectScriptOnce(file) {
@@ -230,17 +117,17 @@ function isPinduoduoPage(url) {
 }
 
 // --------------------------------------- 商品采集 插件 --------------------------------------- //
-(function () {
+// (function () {
 
-    if (!isPinduoduoPage()) {
-        return;
-    }
+//     if (!isPinduoduoPage()) {
+//         return;
+//     }
 
-    console.log("【GoodsCollector】 检测到进入目标页面, 开始注入脚本, url:" + window.location.href);
+//     console.log("【GoodsCollector】 检测到进入目标页面, 开始注入脚本, url:" + window.location.href);
 
-    injectScriptOnce("scripts/goodscollect_inject.js");
+//     injectScriptOnce("scripts/goodscollect_inject.js");
 
-    console.log("【GoodsCollector】 脚本已加载");
+//     console.log("【GoodsCollector】 脚本已加载");
 
-})();
+// })();
 
