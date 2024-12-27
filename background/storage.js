@@ -13,20 +13,33 @@ var goodInfo = {
     goodsID: '',
     goodsSales: '',
     shareLink: '',
-    goodsLink: "https://mobile.pinduoduo.com/goods.html?goods_id=",
+    goodsLink: '',
 };
 */
 
+/**
+ * Goods data tag enum
+ */
 const goodsTag = {
-    pdd: 'goodsData_pdd'
+    pdd: 'goodsData_pdd',
+    taobao: 'goodsData_taobao',
 }
 
+/**
+ * save goods data
+ * @param {goodsInfo} data 
+ * @returns 
+ */
 export function saveGoodsData(data) {
     return new Promise((resolve, reject) => {
         console.log("storeGoodsData", data);
         const tag = data.tag;
         const goodsInfo = data.goodsInfo;
-        // 存储数据到 chrome storage
+        if (!goodsInfo) {
+            reject({ success: false, message: "goodsInfo is null" });
+            return;
+        }
+        // chrome storage
         getStoreGoodsData(tag).then((goodsData) => {
 
             if (!goodsData) {
@@ -34,7 +47,7 @@ export function saveGoodsData(data) {
             }
             var addFlag = true;
             for (var i = 0; i < goodsData.length; i++) {
-                if (goodsData[i] && goodsData[i].goodsID == goodsInfo.goodsID) {
+                if (goodsData[i] && goodsData[i].goodsID && goodsInfo.goodsID && goodsData[i].goodsID == goodsInfo.goodsID) {
                     goodsData[i] = goodsInfo;
                     addFlag = false;
                     break;
@@ -42,9 +55,9 @@ export function saveGoodsData(data) {
             }
             if (addFlag) {
                 goodsData.push(goodsInfo);
-                console.log("新增商品信息成功，goodId:", goodsInfo.goodsID);
+                console.log("GoodInfo add，goodId:", goodsInfo.goodsID);
             } else {
-                console.log("更新商品信息成功，goodId:", goodsInfo.goodsID);
+                console.log("GoodInfo update，goodId:", goodsInfo.goodsID);
             }
 
 
@@ -53,10 +66,10 @@ export function saveGoodsData(data) {
                     return a.tabOrder - b.tabOrder;
                 });
 
-                if (data.tag == 'pdd') {
-                    chrome.storage.local.set({ goodsData_pdd: goodsData }, () => {
-                        console.log("数据已存储到 localStorage，size:" + goodsData.length);
-                        console.info("数据已存储到 localStorage，data:", goodsData);
+                if (goodsTag[tag]) {
+                    chrome.storage.local.set({ [goodsTag[tag]]: goodsData }, () => {
+                        console.info("localStorage save success，tag:%s, database: %s, size:%s", tag, goodsTag[tag], goodsData.length);
+                        console.info("localStorage, database: " + goodsTag[tag] + "data: ", goodsData);
                         resolve({ success: true });
                     });
                 }
@@ -65,29 +78,37 @@ export function saveGoodsData(data) {
     })
 }
 
+/**
+ * clear goods data
+ * @param {goods tag} tag 
+ * @returns 
+ */
 export function clearGoodsData(tag) {
     return new Promise((resolve, reject) => {
         console.log("clearGoodsData tag:", tag);
-
-        const goodsData = [];
-        if (tag == 'pdd') {
-            chrome.storage.local.set({ goodsData_pdd: goodsData }, () => {
-                console.log("数据已存储到 localStorage，size:" + goodsData.length);
+        if (goodsTag[tag]) {
+            chrome.storage.local.set({ [goodsTag[tag]]: [] }, () => {
+                console.info("localStorage clear success，tag:%s, database: %s", tag, goodsTag[tag]);
                 resolve({ success: true });
             });
         }
     })
 }
 
+/**
+ * get goods data
+ * @param {goods tag} tag 
+ * @returns 
+ */
 export function getStoreGoodsData(tag) {
-    // 存储数据到 chrome storage
+    // chrome storage
     return new Promise((resolve, reject) => {
-        if (tag == 'pdd') {
-            chrome.storage.local.get(['goodsData_pdd'], function (result) {
+        if (goodsTag[tag]) {
+            chrome.storage.local.get([goodsTag[tag]], function (result) {
                 if (chrome.runtime.lastError) {
                     reject(chrome.runtime.lastError);
                 } else {
-                    var data = result.goodsData_pdd;
+                    var data = result[goodsTag[tag]];
                     if (!data) {
                         data = [];
                     } else {
@@ -99,6 +120,5 @@ export function getStoreGoodsData(tag) {
                 }
             });
         }
-
     })
 }

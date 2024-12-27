@@ -14,7 +14,8 @@
         "scripting",
         "activeTab",
         "webRequest",
-        "webRequestBlocking"
+        "webRequestBlocking",
+        "declarativeNetRequest"
     ],
     "host_permissions": [
         "*://*/*"
@@ -48,6 +49,7 @@
         {
             "resources": [
                 "scripts/*.js",
+                "scripts/injects/*.js",
                 "background/*.js",
                 "/libs/xlsx.full.min.js"
             ],

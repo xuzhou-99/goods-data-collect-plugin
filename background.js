@@ -1,6 +1,8 @@
-// background.js文件  
-import * as storage from './background/storage.js';
+// background.js文件 
+
 // 使用 storage.saveGoodsData(request.data) 的方式调用模块化方法
+import * as storage from './background/storage.js';
+import * as utils from './background/utils.js';
 
 
 chrome.runtime.onInstalled.addListener(function () {
@@ -8,15 +10,25 @@ chrome.runtime.onInstalled.addListener(function () {
 });
 
 
-// --------------------------------------- 通用 插件 --------------------------------------- //
+// --------------------------------------- 通用 插件(app=Sys) --------------------------------------- //
 // 存储每个 tab 的序列号
 let tabOrderMap = {};
 
 // 标签页创建时，分配序列号
 chrome.tabs.onCreated.addListener((tab) => {
-    const sequenceNumber = generateUniqueSequence(); // 生成唯一序列号
+    const tabId = tab.id;
+    const sequenceNumber = utils.generateUniqueSequence(); // 生成唯一序列号
     tabOrderMap[tab.id] = sequenceNumber;
     console.log(`Tab ${tab.id} 分配序列号：${sequenceNumber}`);
+});
+
+// 标签页更新完成时，发送消息
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    console.log(`Tab ${tabId} 更新状态：${changeInfo.status}`, changeInfo);
+    if (changeInfo.status === 'complete' && tabOrderMap[tabId]) {
+        const message = { action: "assignTabOrder", tabId: tabId, order: tabOrderMap[tabId] };
+        chrome.tabs.sendMessage(tabId, message);
+    }
 });
 
 // 监听 tab 的关闭事件，清理序列号
@@ -25,12 +37,18 @@ chrome.tabs.onRemoved.addListener((tabId) => {
     console.log(`Tab ${tabId} 已关闭，序列号已移除`);
 });
 
-// 监听消息以返回序列号
+// 消息监听-通用
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.app !== "Sys") {
+        return;
+    }
+    console.debug("Sys receive message:", request, sender)
+
+    // 监听消息以返回序列号
     if (request.action === "getTabOrder") {
         const order = tabOrderMap[sender.tab.id];
         if (order) {
-            sendResponse({ success: true, order });
+            sendResponse({ success: true, tabId: sender.tab.id, order: order });
         } else {
             sendResponse({ success: false, message: "序列号不存在" });
         }
@@ -39,21 +57,33 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 
-// --------------------------------------- 账号 插件 --------------------------------------- //
-
-
 
 // --------------------------------------- 商品数据采集 插件 --------------------------------------- //
 
-// 脚本功能
+// 消息监听-商品数据采集
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-    console.debug("background：接收到消息：" + request.action, request, sender)
+    if (request.app !== "GoodsCollect") {
+        return;
+    }
+    console.debug("GoodsCollect receive message:", request, sender)
+
+
+    // 注入脚本
+    if (request.action === "injectContentScript") {
+        console.log("[background] injectContentScript:", request);
+        chrome.scripting.executeScript({
+            target: { tabId: sender.tab.id, frameIds: [request.frameId] },
+            files: ["scripts/content.js"],
+        });
+        sendResponse({ success: true });
+    }
 
     // 提取商品数据
     if (request.action === "extractGoodData") {
+        console.log("[background] extractGoodData:", request);
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (!tabs || tabs.length === 0) {
-                console.error("没有找到当前活动的标签页");
+                console.info("没有找到当前活动的标签页");
                 sendResponse({ success: false, message: "未找到活动标签页" });
                 return;
             }
@@ -68,12 +98,12 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                 },
                 () => {
                     if (chrome.runtime.lastError) {
-                        console.error("注入脚本时出错：", chrome.runtime.lastError.message);
+                        console.info("注入脚本时出错：", chrome.runtime.lastError.message);
                         sendResponse({ success: false, message: "注入脚本失败" });
                     } else {
                         chrome.tabs.sendMessage(activeTab.id, request, (response) => {
                             if (chrome.runtime.lastError) {
-                                console.error("发送消息时出错：", chrome.runtime.lastError.message);
+                                console.info("发送消息时出错：", chrome.runtime.lastError.message);
                                 sendResponse({ success: false, message: "发送消息失败" });
                             } else {
                                 sendResponse(response);
@@ -88,17 +118,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     }
 
 
-    // 注入脚本
-    if (request.action === "injectContentScript") {
-        console.log("[background] injectContentScript:", request.data);
-        chrome.scripting.executeScript({
-            target: { tabId: sender.tab.id, frameIds: [request.frameId] },
-            files: ["scripts/content.js"],
-        });
-        sendResponse({ success: true });
-    }
-
-
     // 获取商品数据
     if (request.action === "getStoreGoodsData") {
         console.log("[background] getStoreGoodsData:", request);
@@ -109,7 +128,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                 sendResponse(data);
             })
             .catch((error) => {
-                console.error("查询数据出错：", error)
+                console.info("查询数据出错：", error)
                 sendResponse([]);
             });
         return true; // 表示异步响应
@@ -126,8 +145,8 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                 sendResponse(data);
             })
             .catch((error) => {
-                console.error("保存数据出错：", error)
-                sendResponse([]);
+                console.info("保存数据出错：", error)
+                sendResponse(error);
             });
         return true; // 表示异步响应
     }
@@ -142,12 +161,61 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                 sendResponse(data);
             })
             .catch((error) => {
-                console.error("清除数据出错：", error)
-                sendResponse([]);
+                console.info("清除数据出错：", error)
+                sendResponse(error);
             });
         return true; // 表示异步响应
     }
 })
+
+// 存储请求和响应数据
+const requestDetailsMap = new Map();
+
+chrome.webRequest.onBeforeRequest.addListener(
+    function (details) {
+        console.log("Script request detected:", details);
+        if (details && details.url) {
+            if (details.url.includes("mtop.taobao.pcdetail.data.get")) {
+                // 存储请求详情
+                requestDetailsMap.set(details.requestId, details);
+            }
+        }
+
+    },
+    { urls: ["*://h5api.m.tmall.com/*"], types: ["script"] }
+);
+
+
+// 监听 script 响应
+chrome.webRequest.onCompleted.addListener(
+    function (details) {
+        console.log("Script response completed:", details);
+        if (requestDetailsMap.has(details.requestId)) {
+            // 获取请求详情
+            const requestDetails = requestDetailsMap.get(details.requestId);
+            requestDetailsMap.delete(details.requestId);
+
+            // 使用 declarativeNetRequest 获取响应内容
+            chrome.declarativeNetRequest.getMatchedRules({ requestId: details.requestId }, (matchedRules) => {
+                if (matchedRules.rulesMatchedInfo.length > 0) {
+                    const responseBody = matchedRules.rulesMatchedInfo[0].rule.condition.urlFilter;
+                    console.log("Script response body:", responseBody);
+
+                    // 将请求和响应详情发送给内容脚本
+                    chrome.tabs.sendMessage(details.tabId, {
+                        type: "script-response",
+                        requestDetails: requestDetails,
+                        responseBody: responseBody
+                    });
+                }
+            });
+        }
+    },
+    { urls: ["*://h5api.m.tmall.com/*"], types: ["script"] }
+);
+
+
+// --------------------------------------- 账号 插件 --------------------------------------- //
 
 
 // --------------------------------------- 账号配置 --------------------------------------- //

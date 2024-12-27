@@ -27,16 +27,21 @@ function init() {
     console.log("检测并注入脚本 开始...")
     // 检测并注入到所有 iframe
     document.querySelectorAll("iframe").forEach((iframe) => {
-        chrome.runtime.sendMessage({ action: "injectContentScript", frameId: iframe.id });
+        chrome.runtime.sendMessage({ app: "GoodsCollect", action: "injectContentScript", frameId: iframe.id });
     });
     console.log("检测并注入脚本 完成")
+}
+
+function getTag() {
+    const selectElement = document.getElementById('websiteSelect');
+    return selectElement.value;
 }
 
 // 加载数据
 function loadGoodsData() {
     console.log("加载缓存数据")
 
-    chrome.runtime.sendMessage({ action: "getStoreGoodsData", tag: 'pdd', page: 1, pageSize: 100 }, (data) => {
+    chrome.runtime.sendMessage({ app: "GoodsCollect", action: "getStoreGoodsData", tag: getTag(), page: 1, pageSize: 100 }, (data) => {
         console.debug("消息结果：", data);
         renderTable(data);
     })
@@ -48,7 +53,7 @@ function loadGoodsData() {
 function clearGoodsData() {
     console.log("删除缓存数据")
 
-    chrome.runtime.sendMessage({ action: "clearGoodsInfoData", tag: 'pdd' }, (response) => {
+    chrome.runtime.sendMessage({ app: "GoodsCollect", action: "clearGoodsInfoData", tag: getTag() }, (response) => {
         console.debug("消息结果：", response);
         if (response.success) {
             loadGoodsData();
@@ -85,16 +90,16 @@ function fetchGoodData() {
                 if (chrome.runtime.lastError) {
                     alert("注入脚本失败：" + chrome.runtime.lastError.message);
                 } else {
-                    chrome.tabs.sendMessage(activeTab.id, { action: "extractGoodData" }, (response) => {
+                    chrome.tabs.sendMessage(activeTab.id, { app: "GoodsCollect", action: "extractGoodData" }, (response) => {
                         console.log("数据：", response)
                         if (response && response.success) {
 
                             const goodsInfo = {
-                                tag: 'pdd',
+                                tag: getTag(),
                                 goodsInfo: response.goodInfo
                             }
 
-                            chrome.runtime.sendMessage({ action: "saveGoodsInfoData", data: goodsInfo }, (response) => {
+                            chrome.runtime.sendMessage({ app: "GoodsCollect", action: "saveGoodsInfoData", data: goodsInfo }, (response) => {
                                 console.log("保存数据：", response);
                                 if (response.success) {
                                     // alert("数据已保存");
@@ -251,7 +256,7 @@ function getAllBorders() {
 // 获取全部数据
 function getCachedData() {
     return new Promise((resolve) => {
-        chrome.runtime.sendMessage({ action: "getStoreGoodsData", tag: "pdd" }, (response) => {
+        chrome.runtime.sendMessage({ app: "GoodsCollect", action: "getStoreGoodsData", tag: getTag() }, (response) => {
             resolve(response || []);
         });
     });

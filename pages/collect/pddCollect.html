@@ -12,10 +12,15 @@
     <div class="container">
         <header>
             <h2>数据采集</h2>
-            <p>功能说明：PDD采集商品信息，商品的链接，标题，店铺名，价格，销量</p>
+            <p>功能说明：采集商品信息，商品的链接，标题，店铺名，价格，销量</p>
         </header>
 
         <div class="buttons">
+            <!-- 新增下拉选择框 -->
+            <select id="websiteSelect">
+                <option value="pdd">拼多多</option>
+                <option value="taobao">淘宝</option>
+            </select>
             <button id="filterBtn">刷新列表</button>
             <button id="extractInfo">提取信息</button>
             <button id="clearAll">清空</button>
