@@ -53,7 +53,9 @@ window.addEventListener("message", (event) => {
 window.addEventListener("load", () => {
     console.log("Page load finished!", window.location.href, getTabOrder());
 
-    injectScript()
+    injectScript((response) => {
+        console.log(response);
+    })
 
 });
 
@@ -189,7 +191,9 @@ function isTianmaoPage(url) {
 
 (function () {
 
-    injectScript();
+    injectScript((response) => {
+        console.log(response);
+    })
 
 })();
 

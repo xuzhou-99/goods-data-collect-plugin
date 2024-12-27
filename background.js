@@ -22,14 +22,14 @@ chrome.tabs.onCreated.addListener((tab) => {
     console.log(`Tab ${tab.id} 分配序列号：${sequenceNumber}`);
 });
 
-// 标签页更新完成时，发送消息
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    console.log(`Tab ${tabId} 更新状态：${changeInfo.status}`, changeInfo);
-    if (changeInfo.status === 'complete' && tabOrderMap[tabId]) {
-        const message = { action: "assignTabOrder", tabId: tabId, order: tabOrderMap[tabId] };
-        chrome.tabs.sendMessage(tabId, message);
-    }
-});
+// // 标签页更新完成时，发送消息 -- 页面未加载插件脚本，会导致消息发送失败
+// chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+//     console.log(`Tab ${tabId} 更新状态：${changeInfo.status}`, changeInfo);
+//     if (changeInfo.status === 'complete' && tabOrderMap[tabId]) {
+//         const message = { action: "assignTabOrder", tabId: tabId, order: tabOrderMap[tabId] };
+//         chrome.tabs.sendMessage(tabId, message);
+//     }
+// });
 
 // 监听 tab 的关闭事件，清理序列号
 chrome.tabs.onRemoved.addListener((tabId) => {

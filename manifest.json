@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "GoodsCollector",
     "version": "0.9.9",
-    "description": "数据采集插件",
+    "description": "数据采集插件，进去当前主流的电商网站平台时，能自动采集商品信息，方便用户进行数据分析。",
     "icons": {
         "16": "images/favicon-16x16.png",
         "48": "images/favicon-16x16.png",
@@ -18,7 +18,10 @@
         "declarativeNetRequest"
     ],
     "host_permissions": [
-        "*://*/*"
+        "*://*.pinduoduo.com/*",
+        "*://*.yangkeduo.com/*",
+        "*://*.taobao.com/*",
+        "*://*.tmall.com/*"
     ],
     "background": {
         "service_worker": "background.js",
@@ -39,7 +42,10 @@
                 "scripts/content.js"
             ],
             "matches": [
-                "*://*/*"
+                "*://*.pinduoduo.com/*",
+                "*://*.yangkeduo.com/*",
+                "*://*.taobao.com/*",
+                "*://*.tmall.com/*"
             ],
             "all_frames": true,
             "run_at": "document_start"
@@ -54,7 +60,10 @@
                 "/libs/xlsx.full.min.js"
             ],
             "matches": [
-                "<all_urls>"
+                "*://*.pinduoduo.com/*",
+                "*://*.yangkeduo.com/*",
+                "*://*.taobao.com/*",
+                "*://*.tmall.com/*"
             ]
         }
     ]
