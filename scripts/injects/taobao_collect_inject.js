@@ -10,14 +10,14 @@
         }
 
         const check = url.includes("mtop.taobao.pcdetail.data.get");
-        console.log("isTargetPage:", check);
+        console.log("[PluginInject] isTargetPage:", check);
         return check;
     }
 
 
     function extractGoodData(dataSource, sendResponse) {
-        console.log("Start to extract goods data...");
-        // console.debug("Sourcedata:", dataSource);
+        console.log("[PluginInject]Start to extract goods data...");
+        // console.debug("[PluginInject] Sourcedata:", dataSource);
 
         try {
             const targetData = dataSource;
@@ -108,7 +108,7 @@
                                     tag: 'taobao',
                                     goodsInfo: goodInfo
                                 }
-                                console.log("Plugin success, send to window, dataInfo: ", goodsInfo);
+                                console.log("[PluginInject] Plugin success, send to window, dataInfo: ", goodsInfo);
 
                                 // send message to content.js
                                 window.postMessage({
@@ -118,12 +118,12 @@
                                 }, "*");
 
                             } else {
-                                console.info("Plugin error:", sendResponse.message);
+                                console.info("[PluginInject] Plugin error:", sendResponse.message);
                             }
                         });
 
                     } catch (error) {
-                        console.warn("Parse XHR request Failed!:", error);
+                        console.warn("[PluginInject] Parse XHR request Failed!:", error);
                     }
                 });
             }

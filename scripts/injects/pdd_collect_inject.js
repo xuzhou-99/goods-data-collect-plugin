@@ -1,7 +1,8 @@
 
-
 (function () {
-    console.log("【GoodsCollector】Target Website page, inject js, url:", window.location.href);
+
+    console.log("[PluginInject] Target Website page, inject js, url:", window.location.href);
+
 
     function isTargetPage(url) {
         if (!url) {
