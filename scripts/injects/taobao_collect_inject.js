@@ -1,7 +1,7 @@
 
 (function () {
 
-    console.log("[PluginInject] Target Website page inject js, url:", window.location.href);
+    console.log("[PluginInject] [Taobao] inject js, url:", window.location.href);
 
 
     function isTargetPage(url) {
@@ -140,6 +140,6 @@
 
     // injectOtherHijack(); // Other
 
-    console.log("[PluginInject] Target Website page inject js finshed!");
+    console.log("[PluginInject] [Taobao] inject js finshed!");
 
 })();

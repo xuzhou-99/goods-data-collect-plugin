@@ -21,7 +21,8 @@
         "*://*.pinduoduo.com/*",
         "*://*.yangkeduo.com/*",
         "*://*.taobao.com/*",
-        "*://*.tmall.com/*"
+        "*://*.tmall.com/*",
+        "*://*.*.tmall.com/*"
     ],
     "background": {
         "service_worker": "background.js",

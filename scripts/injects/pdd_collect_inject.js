@@ -1,7 +1,7 @@
 
 (function () {
 
-    console.log("[PluginInject] Target Website page, inject js, url:", window.location.href);
+    console.log("[PluginInject] [Pinduoduo] inject js, url:", window.location.href);
 
 
     function isTargetPage(url) {
@@ -53,7 +53,7 @@
                 if (goodInfoStr.endsWith(";")) {
                     goodInfoStr = goodInfoStr.substring(0, goodInfoStr.length - 1);
                 }
-                // console.log("goodInfoStr：", goodInfoStr);
+                // console.log("goodInfoStr: ", goodInfoStr);
 
                 targetData = JSON.parse(goodInfoStr);
             }

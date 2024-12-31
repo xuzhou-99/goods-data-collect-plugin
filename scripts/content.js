@@ -10,12 +10,12 @@ async function getTabOrder() {
             chrome.runtime.sendMessage({ app: "Sys", action: "getTabOrder" }, (response) => {
                 console.log(response);
                 if (response.success) {
-                    console.log("Get Tab orderNo success：", response.order);
+                    console.log("Get Tab orderNo success: ", response.order);
                     // 将序列号存储或处理
                     currentTabOrder = response.order;
                     resolve(currentTabOrder);
                 } else {
-                    console.info("Get Tab orderNo failed：", response.message);
+                    console.info("Get Tab orderNo failed: ", response.message);
                     resolve(null);
                 }
             });
@@ -45,6 +45,10 @@ window.addEventListener("message", (event) => {
 
         // 如果需要传递给 background.js，可使用 chrome.runtime.sendMessage
         chrome.runtime.sendMessage({ app: "GoodsCollect", action: "saveGoodsInfoData", data: goodsData, });
+    }
+
+    if (event.data.type === 'extract-script-response') {
+        
     }
 });
 
@@ -83,6 +87,9 @@ function injectScript(sendResponse) {
     } else if (isTaobaoPage()) {
         injectFile = "scripts/injects/taobao_collect_inject.js";
         console.log("Taobao page");
+    } else if (isTianmaoPage()) {
+        injectFile = "scripts/injects/tmall_collect_inject.js";
+        console.log("Tmall page");
     }
 
     if (injectFile) {
@@ -133,10 +140,26 @@ const observer = new MutationObserver((mutationsList) => {
 // 接收后台脚本发送的消息
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === "script-request") {
-        console.log("Received script request details:", message.details);
-        const callbackValue = getQueryParam(message.details.url, 'mtopjsonppcdetail2');
+        console.log("Received script request details:", message.requestDetails);
+        const callbackValue = getQueryParam(message.requestDetails.url, 'mtopjsonppcdetail2');
         console.log("Extracted mtopjsonppcdetail2 value:", callbackValue);
         // 在这里处理 script 请求的详情
+
+        // const details = message.requestDetails;
+
+
+        // // 使用 XMLHttpRequest 获取响应内容
+        // const xhr = new XMLHttpRequest();
+        // xhr.open('GET', details.url, true);
+        // xhr.onreadystatechange = function () {
+        //     if (xhr.readyState === 4 && xhr.status === 200) {
+        //         const responseBody = xhr.responseText;
+        //         console.log("Script response body:", responseBody);
+
+
+        //     }
+        // };
+        // xhr.send();
     }
 });
 
@@ -172,7 +195,7 @@ function isTaobaoPage(url) {
     if (!url) {
         url = window.location.href;
     }
-    return /(item|detail)\.(taobao|tmall)\.com\/(item.*)\.htm/.test(url);
+    return /item\.(taobao)\.com\/(item.*)\.htm/.test(url);
 }
 
 /**
@@ -183,7 +206,7 @@ function isTianmaoPage(url) {
     if (!url) {
         url = window.location.href;
     }
-    return /h5api\.m\.tmall\.com/.test(url);
+    return /h5api\.m\.tmall\.com/.test(url) || /detail\.(tmall)\.com\/(item.*)\.htm/.test(url);
 }
 
 

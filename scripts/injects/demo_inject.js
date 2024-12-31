@@ -120,7 +120,7 @@ const injectFetchHijack = () => {
     console.info("[PluginInject] Fetch Inject");
     const originalFetch = window.fetch;
     window.fetch = async function (...args) {
-        console.debug("[PluginInject] Hijack Fetch Request：", args);
+        console.debug("[PluginInject] Hijack Fetch Request: ", args);
         const response = await originalFetch.apply(this, args);
         const clonedResponse = response.clone();
 
@@ -258,7 +258,7 @@ const injectOtherHijack = () => {
 
 (function () {
 
-    console.log("[PluginInject] Target Website page inject js, url:", window.location.href);
+    console.log("[PluginInject] [Target Website page] inject js, url:", window.location.href);
 
     injectFetchHijack();// Fetch
 
@@ -268,6 +268,6 @@ const injectOtherHijack = () => {
 
     injectOtherHijack(); // Other
 
-    console.log("[PluginInject] Target Website page inject js finshed!");
+    console.log("[PluginInject] [Target Website page] inject js finshed!");
 
 })();

@@ -173,11 +173,18 @@ const requestDetailsMap = new Map();
 
 chrome.webRequest.onBeforeRequest.addListener(
     function (details) {
-        console.log("Script request detected:", details);
+        // console.debug("Script request detected:", details);
         if (details && details.url) {
             if (details.url.includes("mtop.taobao.pcdetail.data.get")) {
+                console.debug("Script request detected:", details);
                 // 存储请求详情
                 requestDetailsMap.set(details.requestId, details);
+
+                // 将请求和响应详情发送给内容脚本
+                chrome.tabs.sendMessage(details.tabId, {
+                    type: "script-request",
+                    requestDetails: details,
+                });
             }
         }
 
@@ -189,26 +196,45 @@ chrome.webRequest.onBeforeRequest.addListener(
 // 监听 script 响应
 chrome.webRequest.onCompleted.addListener(
     function (details) {
-        console.log("Script response completed:", details);
+        // console.debug("Script response completed:", details);
         if (requestDetailsMap.has(details.requestId)) {
+            console.debug("Script response completed:", details);
             // 获取请求详情
             const requestDetails = requestDetailsMap.get(details.requestId);
             requestDetailsMap.delete(details.requestId);
 
-            // 使用 declarativeNetRequest 获取响应内容
-            chrome.declarativeNetRequest.getMatchedRules({ requestId: details.requestId }, (matchedRules) => {
-                if (matchedRules.rulesMatchedInfo.length > 0) {
-                    const responseBody = matchedRules.rulesMatchedInfo[0].rule.condition.urlFilter;
-                    console.log("Script response body:", responseBody);
+            // 使用 filterResponseData 获取响应内容
+            const filter = chrome.webRequest.filterResponseData(details.requestId);
+            const decoder = new TextDecoder("utf-8");
+            const encoder = new TextEncoder();
 
-                    // 将请求和响应详情发送给内容脚本
+            let responseBody = "";
+
+            filter.ondata = event => {
+                responseBody += decoder.decode(event.data, { stream: true });
+                filter.write(event.data);
+            };
+
+            filter.onstop = () => {
+                responseBody += decoder.decode();
+                filter.close();
+
+                console.log("Script response body:", responseBody);
+
+                // 解析响应结果
+                try {
+                    const responseData = JSON.parse(responseBody);
+                    console.log("Parsed response data:", responseData);
+
+                    // 将解析后的数据发送给内容脚本
                     chrome.tabs.sendMessage(details.tabId, {
                         type: "script-response",
-                        requestDetails: requestDetails,
-                        responseBody: responseBody
+                        responseData: responseData,
                     });
+                } catch (error) {
+                    console.error("Failed to parse response body:", error);
                 }
-            });
+            };
         }
     },
     { urls: ["*://h5api.m.tmall.com/*"], types: ["script"] }
