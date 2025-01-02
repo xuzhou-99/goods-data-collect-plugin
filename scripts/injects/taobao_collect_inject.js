@@ -104,6 +104,7 @@
                         extractGoodData(responseData, (sendResponse) => {
                             if (sendResponse.success) {
                                 const goodInfo = sendResponse.goodInfo;
+                                goodInfo.pSource = 'taobao';
                                 const goodsInfo = {
                                     tag: 'taobao',
                                     goodsInfo: goodInfo
@@ -132,13 +133,10 @@
     };
 
 
-    // injectFetchHijack();// Fetch
+    // ---------------------------- start --------------------------- //
 
     injectXHRHijack(); // XHR
 
-    // injectAxiosHijack(); // Axios
-
-    // injectOtherHijack(); // Other
 
     console.log("[PluginInject] [Taobao] inject js finshed!");
 

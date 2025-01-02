@@ -228,6 +228,71 @@ const injectXHRHijack = () => {
 };
 
 /**
+ * Hijack JSONP Request
+ */
+const injectJSONPHijack = () => {
+    console.info("[PluginInject] JSONP Inject");
+
+    const originalCallbacks = {};
+
+    // rewrite JSONP callback
+    const rewriteJSONPCallback = (callbackName) => {
+        if (window[callbackName] && typeof window[callbackName] === 'function') {
+            originalCallbacks[callbackName] = window[callbackName];
+            window[callbackName] = function (res) {
+                // console.debug(`[PluginInject] Hijack JSONP ${callbackName}:`, res);
+
+                if (res && res.api == 'mtop.taobao.pcdetail.data.get') {
+                    console.debug("[PluginInject] Hijack JSONP response:", res);
+
+                    extractGoodData(res, (sendResponse) => {
+                        if (sendResponse.success) {
+                            const goodInfo = sendResponse.goodInfo;
+                            const goodsInfo = {
+                                tag: 'Tag',
+                                goodsInfo: goodInfo
+                            }
+                            console.log("[PluginInject] Plugin success, send to window, dataInfo: ", goodsInfo);
+
+                            window.postMessage({
+                                type: 'extract-data-response',
+                                tag: 'Tag',
+                                goodInfo: goodInfo,
+                            }, "*");
+
+                        } else {
+                            console.info("[PluginInject] Plugin error:", sendResponse.message);
+                        }
+                    });
+                }
+
+                // call original callback
+                originalCallbacks[callbackName](res);
+            };
+        }
+    };
+
+    // all JSONP callback function
+    const callbackPattern = /^mtopjsonppcdetail\d+$/;
+    for (const key in window) {
+        if (callbackPattern.test(key)) {
+            rewriteJSONPCallback(key);
+        }
+    }
+
+    // add JSONP observer
+    const observer = new MutationObserver(() => {
+        for (const key in window) {
+            if (callbackPattern.test(key) && !originalCallbacks[key]) {
+                rewriteJSONPCallback(key);
+            }
+        }
+    });
+
+    observer.observe(document, { childList: true, subtree: true });
+};
+
+/**
  * Hijack web page to extract data
  */
 const injectOtherHijack = () => {
@@ -259,12 +324,16 @@ const injectOtherHijack = () => {
 (function () {
 
     console.log("[PluginInject] [Target Website page] inject js, url:", window.location.href);
+    
+    // ---------------------------- start --------------------------- //
 
     injectFetchHijack();// Fetch
 
     injectXHRHijack(); // XHR
 
     injectAxiosHijack(); // Axios
+
+    injectJSONPHijack(); // JSONP
 
     injectOtherHijack(); // Other
 

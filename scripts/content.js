@@ -48,7 +48,7 @@ window.addEventListener("message", (event) => {
     }
 
     if (event.data.type === 'extract-script-response') {
-        
+
     }
 });
 
@@ -140,26 +140,8 @@ const observer = new MutationObserver((mutationsList) => {
 // 接收后台脚本发送的消息
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === "script-request") {
-        console.log("Received script request details:", message.requestDetails);
-        const callbackValue = getQueryParam(message.requestDetails.url, 'mtopjsonppcdetail2');
-        console.log("Extracted mtopjsonppcdetail2 value:", callbackValue);
-        // 在这里处理 script 请求的详情
+        console.log("Received script request details:", message);
 
-        // const details = message.requestDetails;
-
-
-        // // 使用 XMLHttpRequest 获取响应内容
-        // const xhr = new XMLHttpRequest();
-        // xhr.open('GET', details.url, true);
-        // xhr.onreadystatechange = function () {
-        //     if (xhr.readyState === 4 && xhr.status === 200) {
-        //         const responseBody = xhr.responseText;
-        //         console.log("Script response body:", responseBody);
-
-
-        //     }
-        // };
-        // xhr.send();
     }
 });
 

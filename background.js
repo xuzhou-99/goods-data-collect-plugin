@@ -168,77 +168,74 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     }
 })
 
-// 存储请求和响应数据
-const requestDetailsMap = new Map();
 
-chrome.webRequest.onBeforeRequest.addListener(
-    function (details) {
-        // console.debug("Script request detected:", details);
-        if (details && details.url) {
-            if (details.url.includes("mtop.taobao.pcdetail.data.get")) {
-                console.debug("Script request detected:", details);
-                // 存储请求详情
-                requestDetailsMap.set(details.requestId, details);
+// // 存储请求和响应数据
+// const requestDetailsMap = new Map();
+// const requestHeadersMap = new Map();
 
-                // 将请求和响应详情发送给内容脚本
-                chrome.tabs.sendMessage(details.tabId, {
-                    type: "script-request",
-                    requestDetails: details,
-                });
-            }
-        }
+// chrome.webRequest.onBeforeRequest.addListener(
+//     function (details) {
+//         // console.debug("Script request detected:", details);
+//         if (details && details.url) {
+//             if (details.url.includes("mtop.taobao.pcdetail.data.get")) {
+//                 console.debug("Script request detected:", details);
+//                 // 存储请求详情
+//                 requestDetailsMap.set(details.requestId, details);
 
-    },
-    { urls: ["*://h5api.m.tmall.com/*"], types: ["script"] }
-);
+//                 // 将请求和响应详情发送给内容脚本
+//                 chrome.tabs.sendMessage(details.tabId, {
+//                     type: "script-request",
+//                     requestDetails: details,
+//                 });
+//             }
+//         }
 
+//     },
+//     { urls: ["*://h5api.m.tmall.com/*"], types: ["script"] }
+// );
 
-// 监听 script 响应
-chrome.webRequest.onCompleted.addListener(
-    function (details) {
-        // console.debug("Script response completed:", details);
-        if (requestDetailsMap.has(details.requestId)) {
-            console.debug("Script response completed:", details);
-            // 获取请求详情
-            const requestDetails = requestDetailsMap.get(details.requestId);
-            requestDetailsMap.delete(details.requestId);
+// // 监听请求头
+// chrome.webRequest.onBeforeSendHeaders.addListener(
+//     function (details) {
+//         if (requestDetailsMap.has(details.requestId)) {
+//             console.debug("Script request headers detected:", details);
+//             // 存储请求头
+//             requestHeadersMap.set(details.requestId, details.requestHeaders);
+//         }
+//     },
+//     { urls: ["*://h5api.m.tmall.com/*"], types: ["script"] },
+//     ["requestHeaders"]
+// );
 
-            // 使用 filterResponseData 获取响应内容
-            const filter = chrome.webRequest.filterResponseData(details.requestId);
-            const decoder = new TextDecoder("utf-8");
-            const encoder = new TextEncoder();
+// // 监听 script 响应
+// chrome.webRequest.onResponseStarted.addListener(
+//     function (details) {
+//         // console.debug("Script response completed:", details);
+//         if (requestDetailsMap.has(details.requestId)) {
+//             console.debug("Script response started:", details);
+//             // 获取请求详情
+//             const requestDetails = requestDetailsMap.get(details.requestId);
+//             // requestDetailsMap.delete(details.requestId);
 
-            let responseBody = "";
+//         }
+//     },
+//     { urls: ["*://h5api.m.tmall.com/*"], types: ["script"] }
+// );
 
-            filter.ondata = event => {
-                responseBody += decoder.decode(event.data, { stream: true });
-                filter.write(event.data);
-            };
-
-            filter.onstop = () => {
-                responseBody += decoder.decode();
-                filter.close();
-
-                console.log("Script response body:", responseBody);
-
-                // 解析响应结果
-                try {
-                    const responseData = JSON.parse(responseBody);
-                    console.log("Parsed response data:", responseData);
-
-                    // 将解析后的数据发送给内容脚本
-                    chrome.tabs.sendMessage(details.tabId, {
-                        type: "script-response",
-                        responseData: responseData,
-                    });
-                } catch (error) {
-                    console.error("Failed to parse response body:", error);
-                }
-            };
-        }
-    },
-    { urls: ["*://h5api.m.tmall.com/*"], types: ["script"] }
-);
+// // 监听 script 响应
+// chrome.webRequest.onCompleted.addListener(
+//     function (details) {
+//         if (requestDetailsMap.has(details.requestId)) {
+//             console.debug("Script response completed:", details);
+//             // 获取请求详情
+//             const requestDetails = requestDetailsMap.get(details.requestId);
+//             const requestHeaders = requestHeadersMap.get(details.requestId);
+//             requestDetailsMap.delete(details.requestId);
+//             requestHeadersMap.delete(details.requestId);
+//         }
+//     },
+//     { urls: ["*://h5api.m.tmall.com/*"], types: ["script"] }
+// );
 
 
 // --------------------------------------- 账号 插件 --------------------------------------- //
@@ -283,4 +280,15 @@ function generateUniqueSequence() {
     const sequenceNumber = String(sequenceCounter).padStart(4, "0");
 
     return `${currentTimestamp}${sequenceNumber}`;
+}
+
+/**
+ * 从 URL 中提取指定参数的值
+ * @param {string} url - 要解析的 URL
+ * @param {string} param - 要提取的参数名
+ * @returns {string|null} - 参数的值，如果未找到则返回 null
+ */
+function getQueryParam(url, param) {
+    const urlParams = new URLSearchParams(new URL(url).search);
+    return urlParams.get(param);
 }
