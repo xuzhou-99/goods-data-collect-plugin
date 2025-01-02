@@ -39,6 +39,10 @@ export function saveGoodsData(data) {
             reject({ success: false, message: "goodsInfo is null" });
             return;
         }
+        if (goodsTag[tag]) {
+            reject({ success: false, message: "Tag not exist" });
+            return;
+        }
         // chrome storage
         getStoreGoodsData(tag).then((goodsData) => {
 
@@ -72,6 +76,8 @@ export function saveGoodsData(data) {
                         console.info("localStorage, database: " + goodsTag[tag] + "data: ", goodsData);
                         resolve({ success: true });
                     });
+                } else {
+                    reject({ success: false, message: "Tag not exist" });
                 }
             }
         });
@@ -91,6 +97,8 @@ export function clearGoodsData(tag) {
                 console.info("localStorage clear success，tag:%s, database: %s", tag, goodsTag[tag]);
                 resolve({ success: true });
             });
+        } else {
+            resolve({ success: true });
         }
     })
 }
@@ -119,6 +127,8 @@ export function getStoreGoodsData(tag) {
                     resolve(data);
                 }
             });
+        } else {
+            resolve([]);
         }
     })
 }

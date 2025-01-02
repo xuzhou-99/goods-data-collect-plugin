@@ -1,6 +1,7 @@
 
 const totalInfo = document.getElementById("totalInfo");
 const tableBody = document.getElementById("result");
+const websiteSelect = document.getElementById('websiteSelect');
 
 // 返回功能集合页面
 document.getElementById("back").addEventListener("click", () => { window.location.href = "/popup/popup.html"; });
@@ -33,9 +34,14 @@ function init() {
 }
 
 function getTag() {
-    const selectElement = document.getElementById('websiteSelect');
-    return selectElement.value;
+    return websiteSelect.value;
 }
+
+
+// 监听 websiteSelect 的 change 事件
+websiteSelect.addEventListener('change', function () {
+    loadGoodsData();
+});
 
 // 加载数据
 function loadGoodsData() {
