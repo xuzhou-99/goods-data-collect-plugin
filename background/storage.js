@@ -25,6 +25,15 @@ const goodsTag = {
     taobao: 'goodsData_taobao',
 }
 
+
+/**
+ * distinct flag
+ * @type {boolean}
+ * @default false
+ * @description save data distinct
+ */
+const distinctFlag = false;
+
 /**
  * save goods data
  * @param {goodsInfo} data 
@@ -39,7 +48,7 @@ export function saveGoodsData(data) {
             reject({ success: false, message: "goodsInfo is null" });
             return;
         }
-        if (goodsTag[tag]) {
+        if (!goodsTag[tag]) {
             reject({ success: false, message: "Tag not exist" });
             return;
         }
@@ -50,13 +59,16 @@ export function saveGoodsData(data) {
                 goodsData = [];
             }
             var addFlag = true;
-            for (var i = 0; i < goodsData.length; i++) {
-                if (goodsData[i] && goodsData[i].goodsID && goodsInfo.goodsID && goodsData[i].goodsID == goodsInfo.goodsID) {
-                    goodsData[i] = goodsInfo;
-                    addFlag = false;
-                    break;
+            if (distinctFlag) {
+                for (var i = 0; i < goodsData.length; i++) {
+                    if (goodsData[i] && goodsData[i].goodsID && goodsInfo.goodsID && goodsData[i].goodsID == goodsInfo.goodsID) {
+                        goodsData[i] = goodsInfo;
+                        addFlag = false;
+                        break;
+                    }
                 }
             }
+            
             if (addFlag) {
                 goodsData.push(goodsInfo);
                 console.log("GoodInfo add，goodId:", goodsInfo.goodsID);
