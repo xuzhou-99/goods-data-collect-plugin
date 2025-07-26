@@ -4,22 +4,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>数据采集</title>
-    <link rel="stylesheet" href="pddCollect.css">
+    <title>小红书数据采集</title>
+    <link rel="stylesheet" href="xhsCollect.css">
 </head>
 
 <body>
     <div class="container">
         <header>
             <h2>数据采集</h2>
-            <p>功能说明：采集商品信息，商品的链接，标题，店铺名，价格，销量</p>
+            <p>功能说明：采集小红书帖子信息，链接，标题，用户米，用户id</p>
         </header>
 
         <div class="buttons">
             <!-- 新增下拉选择框 -->
             <select id="websiteSelect">
                 <!-- <option value="all">全部</option> -->
-                <option value="pdd">拼多多</option>
+                <option value="xhs">小红书</option>
                 <!-- <option value="taobao">淘宝</option> -->
                 <!-- <option value="tmall">天猫</option> -->
             </select>
@@ -36,17 +36,16 @@
             <table>
                 <thead>
                     <tr>
-                        <th>链接</th>
                         <th>标题</th>
-                        <th>店铺</th>
-                        <th>价格</th>
-                        <th>销量</th>
+                        <th>链接</th>
+                        <th>用户名</th>
+                        <th>用户id</th>
                         <th>备注</th>
                     </tr>
                 </thead>
                 <tbody id="result">
                     <tr>
-                        <td colspan="6">加载中...</td>
+                        <td colspan="5">加载中...</td>
                     </tr>
                 </tbody>
             </table>
@@ -55,7 +54,7 @@
 
     <script type="module" src="/background/storage.js"></script>
     <script src="/pages/utils.js"></script>
-    <script src="pddCollect.js"></script>
+    <script src="xhsCollect.js"></script>
     <script src="/libs/xlsx.full.min.js"></script>
 </body>
 

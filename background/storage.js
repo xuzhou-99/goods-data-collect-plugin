@@ -21,8 +21,9 @@ var goodInfo = {
  * Goods data tag enum
  */
 const goodsTag = {
-    pdd: 'goodsData_pdd',
-    taobao: 'goodsData_taobao',
+    pdd: 'goodsData_pdd',// 拼多多
+    xhs: 'goodsData_xhs', // 小红书
+    taobao: 'goodsData_taobao',// 淘宝
 }
 
 

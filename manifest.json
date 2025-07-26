@@ -22,7 +22,9 @@
         "*://*.yangkeduo.com/*",
         "*://*.taobao.com/*",
         "*://*.tmall.com/*",
-        "*://*.*.tmall.com/*"
+        "*://*.*.tmall.com/*",
+        "*://*.xiaohongshu.com/*",
+        "*://edith.xiaohongshu.com/*"
     ],
     "background": {
         "service_worker": "background.js",
@@ -46,7 +48,9 @@
                 "*://*.pinduoduo.com/*",
                 "*://*.yangkeduo.com/*",
                 "*://*.taobao.com/*",
-                "*://*.tmall.com/*"
+                "*://*.tmall.com/*",
+                "*://*.xiaohongshu.com/*",
+                "*://edith.xiaohongshu.com/*"
             ],
             "all_frames": true,
             "run_at": "document_start"
@@ -64,7 +68,9 @@
                 "*://*.pinduoduo.com/*",
                 "*://*.yangkeduo.com/*",
                 "*://*.taobao.com/*",
-                "*://*.tmall.com/*"
+                "*://*.tmall.com/*",
+                "*://*.xiaohongshu.com/*",
+                "*://edith.xiaohongshu.com/*"
             ]
         }
     ]

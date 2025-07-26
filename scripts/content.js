@@ -1,8 +1,8 @@
 console.log("Content script loaded on:", window.location.href);
 
 // 当前 tab 的序列号
-let currentTabOrder = null;
-let injectFile = null;
+var currentTabOrder;
+var injectFile;
 
 async function getTabOrder() {
     return new Promise((resolve) => {
@@ -58,7 +58,7 @@ window.addEventListener("load", () => {
     console.log("Page load finished!", window.location.href, getTabOrder());
 
     injectScript((response) => {
-        console.log(response);
+        console.log("Auto inject:", response);
     })
 
 });
@@ -90,6 +90,12 @@ function injectScript(sendResponse) {
     } else if (isTianmaoPage()) {
         injectFile = "scripts/injects/tmall_collect_inject.js";
         console.log("Tmall page");
+    } else if (isXiaohongshuPage()) {
+        injectFile = "scripts/injects/xhs_collect_inject.js";
+        console.log("Tmall page");
+    } else {
+        // injectFile = "scripts/injects/demo_inject.js";
+        // console.log("Default page");
     }
 
     if (injectFile) {
@@ -191,6 +197,16 @@ function isTianmaoPage(url) {
     return /h5api\.m\.tmall\.com/.test(url) || /detail\.(tmall)\.com\/(item.*)\.htm/.test(url);
 }
 
+/**
+ * 小红书页面或接口
+ * @param {*} url 
+ * @returns 
+ */
+function isXiaohongshuPage(url) {
+    if (!url) url = window.location.href;
+    // 同时匹配主站和接口域名
+    return /(?:xiaohongshu\.com|edith\.xiaohongshu\.com)/.test(url);
+}
 
 // --------------------------------------- 商品采集 插件 --------------------------------------- //
 

@@ -172,7 +172,7 @@ const injectXHRHijack = () => {
     console.info("[PluginInject] XHR Inject");
     const originalXHR = XMLHttpRequest.prototype.open;
     XMLHttpRequest.prototype.open = function (method, url, ...args) {
-        // console.debug("[PluginInject] Hijack XHR url:", url);
+        console.debug("[PluginInject] Hijack XHR url:", url, " method:", method, args);
         if (isTargetPage(url)) {
             // console.debug("[PluginInject] Hijack XHR url:", url);
             this.addEventListener("load", function () {
@@ -240,7 +240,7 @@ const injectJSONPHijack = () => {
         if (window[callbackName] && typeof window[callbackName] === 'function') {
             originalCallbacks[callbackName] = window[callbackName];
             window[callbackName] = function (res) {
-                // console.debug(`[PluginInject] Hijack JSONP ${callbackName}:`, res);
+                console.debug(`[PluginInject] Hijack JSONP ${callbackName}:`, res);
 
                 if (res && res.api == 'mtop.taobao.pcdetail.data.get') {
                     console.debug("[PluginInject] Hijack JSONP response:", res);
@@ -281,7 +281,11 @@ const injectJSONPHijack = () => {
     }
 
     // add JSONP observer
-    const observer = new MutationObserver(() => {
+    const observer = new MutationObserver((mutationsList) => {
+        // 这里可以根据实际页面结构提取你需要的信息
+        const html = document.documentElement.innerHTML;
+        console.debug("[PluginInject] JSONP MutationObserver HTML:", html);
+
         for (const key in window) {
             if (callbackPattern.test(key) && !originalCallbacks[key]) {
                 rewriteJSONPCallback(key);

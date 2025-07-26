@@ -81,11 +81,11 @@ function fetchGoodData() {
 
         const activeTab = tabs[0];
         console.log("插件进入页面：", activeTab);
-        if (!isPinduoduoPage(activeTab.url)) {
-            console.log("当前页面不支持插件");
-            tableBody.innerHTML = "<tr><td colspan='6'>未能获取数据</td></tr>";
-            return;
-        }
+        // if (!isPinduoduoPage(activeTab.url)) {
+        //     console.log("当前页面不支持插件");
+        //     tableBody.innerHTML = "<tr><td colspan='6'>未能获取数据</td></tr>";
+        //     return;
+        // }
 
         chrome.scripting.executeScript(
             {
@@ -137,7 +137,7 @@ function renderTable(data) {
     if (!data || data.length === 0) {
         tableBody.innerHTML = `
         <tr>
-            <td colspan="6">无数据</td>
+            <td colspan="5">无数据</td>
         </tr>`;
         totalInfo.innerHTML = `<p style="font-weight: bold;">总计信息将显示在此处。</p>`;
         return;
@@ -148,12 +148,11 @@ function renderTable(data) {
 
         // 创建单元格
         const cells = [
-            item.goodsLink,
-            item.goodsName,
-            item.mallName,
-            item.goodsPrice,
-            item.goodsSales,
-            item.statusExplain,
+            item.title || "无",
+            item.url || "无",
+            item.author?.nickname || "无",
+            item.author?.user_id || "无",
+            item.statusExplain || "无",
         ];
         cells.forEach(cellData => {
             const cell = document.createElement("td");
@@ -185,20 +184,22 @@ async function exportToExcel() {
         return;
     }
 
+
     // 准备 Excel 数据：表头和内容
-    const headers = ["商品链接", "商品名称", "店铺名称", "商品价格", "销量", "备注"];
+    const headers = ["标题", "链接", "用户名", "用户id", "备注"];
     const rows = data.map((item) => [
-        item.goodsLink || "无",
-        item.goodsName || "无",
-        item.mallName || "无",
-        item.goodsPrice || "无",
-        item.goodsSales || "无",
+        item.title || "无",
+        item.url || "无",
+        item.author?.nickname || "无",
+        item.author?.user_id || "无",
         item.statusExplain || "无",
     ]);
 
-    utils.exportToExcel('商品信息', headers, rows)
+
+    utils.exportToExcel("小红书帖子数据", headers, rows)
 
 }
+
 
 
 
