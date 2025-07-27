@@ -9,3 +9,8 @@ document.getElementById("pdd-collect-button").addEventListener("click", () => {
 document.getElementById("xhs-collect-button").addEventListener("click", () => {
     window.location.href = "/pages/xhs/xhsCollect.html";
 })
+
+document.getElementById("douyin-collect-button").addEventListener("click", () => {
+    window.location.href = "/pages/douyin/collect.html";
+})
+

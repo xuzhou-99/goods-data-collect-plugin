@@ -24,6 +24,8 @@ const goodsTag = {
     pdd: 'goodsData_pdd',// 拼多多
     xhs: 'goodsData_xhs', // 小红书
     taobao: 'goodsData_taobao',// 淘宝
+    douyin: 'goodsData_douyin', // 抖音
+    kuaishou: 'goodsData_kuaishou', // 快手
 }
 
 
@@ -69,7 +71,7 @@ export function saveGoodsData(data) {
                     }
                 }
             }
-            
+
             if (addFlag) {
                 goodsData.push(goodsInfo);
                 console.log("GoodInfo add，goodId:", goodsInfo.goodsID);

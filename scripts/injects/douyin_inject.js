@@ -11,9 +11,25 @@ function isTargetPage(url) {
     }
 
     // todo: targetPage_url regex
-    const check = url.includes("targetPage_url");
+    const check = url.includes("douyin.com") || /(^\/aweme\/v1\/web\/tab\/feed)|douyin\.com\/aweme\/v1\/web\/tab\/feed/.test(url);;
     console.debug("[PluginInject] isTargetPage:", check);
     return check;
+}
+
+
+/**
+ * is target page
+ * 直接打开的小红书帖子页面
+ * 
+ * @param {www.xiaohongshu.com/explore} url 
+ * @returns 
+ */
+function isTargetPage2(url) {
+    if (!url) {
+        return false;
+    }
+    // 只匹配抖音 feed 接口，支持绝对路径和完整域名
+    return /(^\/aweme\/v1\/web\/tab\/feed)|(^https:\/\/www\.douyin\.com\/aweme\/v1\/web\/tab\/feed)|(\/aweme\/v1\/web\/aweme\/detail)/.test(url);
 }
 
 /**
@@ -26,28 +42,44 @@ function extractGoodData(dataSource, sendResponse) {
     // console.debug("[PluginInject] Sourcedata:", dataSource);
 
     try {
+        // 针对抖音 aweme_list 数据结构提取
+        let aweme = null;
+        if (dataSource && dataSource.aweme_list && Array.isArray(dataSource.aweme_list) && dataSource.aweme_list.length > 0) {
+            aweme = dataSource.aweme_list[0];
+        } else if (dataSource && dataSource.aweme_detail) {
+            aweme = dataSource.aweme_detail;
+        }
 
-        // todo: extract data
-
-        var success = false;
-        const targetData = '';
-        console.log("[PluginInject] targetData:", targetData);
-        if (!targetData) {
-            sendResponse({ success: false, message: "Not Found target data!", });
+        if (!aweme) {
+            sendResponse({ success: false, message: "Not Found target data!" });
             return;
         }
+        const pageUrl = window.location.href;
 
-        var goodInfo = {
-
+        // 提取核心信息
+        const goodInfo = {
+            id: aweme.aweme_id,
+            aweme_id: aweme.aweme_id,
+            title: aweme.item_title || aweme.desc,
+            desc: aweme.desc,
+            author: {
+                nickname: aweme.author?.nickname,
+                avatar: aweme.author?.avatar_thumb?.url_list?.[0],
+                uid: aweme.author?.uid,
+                sec_uid: aweme.author?.sec_uid,
+                user_id: aweme.author?.uid,
+            },
+            cover: aweme.video?.cover?.url_list?.[0],
+            video_urls: aweme.video?.play_addr?.url_list || [],
+            duration: aweme.video?.duration,
+            statistics: aweme.statistics,
+            share_url: aweme.share_url,
+            tags: aweme.text_extra?.map(t => t.hashtag_name) || [],
+            url: pageUrl,
+            raw: aweme,
         };
 
-        if (success == true) {
-            sendResponse({ success: true, goodInfo });
-        } else {
-            sendResponse({ success: false, message: "Empty Data!" });
-        }
-
-
+        sendResponse({ success: true, goodInfo });
     } catch (error) {
         sendResponse({ success: false, message: "Extract data failed" });
     }
@@ -59,14 +91,14 @@ function extractAndSaveGoodData(responseData) {
         if (sendResponse.success) {
             const goodInfo = sendResponse.goodInfo;
             const goodsInfo = {
-                tag: 'Tag',
+                tag: 'douyin',
                 goodsInfo: goodInfo
             }
             console.log("[PluginInject] Plugin success, send to window, dataInfo: ", goodsInfo);
 
             window.postMessage({
                 type: 'extract-data-response',
-                tag: 'Tag',
+                tag: 'douyin',
                 goodInfo: goodInfo,
             }, "*");
 
@@ -98,13 +130,13 @@ function extractAndSaveGoodData(responseData) {
         if (window.axios) {
             // backip axios
             const originalAxios = window.axios;
-            console.debug("[PluginInject] Hijack Axios:", originalAxios);
+            console.info("[PluginInject] Hijack Axios:", originalAxios);
 
             // add interceptors
             originalAxios.interceptors.response.use(
                 function (responseData) {
-                    if (isTargetPage(responseData.config.url)) {
-                        console.debug("[PluginInject] Hijack Axios url:" + responseData.config.url + "response:", responseData);
+                    if (isTargetPage2(responseData.config.url)) {
+                        console.info("[PluginInject] Hijack Axios url:" + responseData.config.url + "response:", responseData);
 
                         // todo: extract data
                         extractAndSaveGoodData(responseData);
@@ -126,13 +158,13 @@ function extractAndSaveGoodData(responseData) {
         console.info("[PluginInject] Fetch Inject");
         const originalFetch = window.fetch;
         window.fetch = async function (...args) {
-            console.debug("[PluginInject] Hijack Fetch Request: ", args);
+            console.info("[PluginInject] Hijack Fetch Request: url:{}", args[0], args);
             const response = await originalFetch.apply(this, args);
             const clonedResponse = response.clone();
 
-            if (isTargetPage(args[0])) {
+            if (isTargetPage2(args[0])) {
                 clonedResponse.json().then((responseData) => {
-                    console.debug("[PluginInject] Hijack Fetch response:", responseData);
+                    console.info("[PluginInject] Hijack Fetch response:", responseData);
 
                     // todo: extract data
                     extractAndSaveGoodData(responseData);
@@ -147,28 +179,27 @@ function extractAndSaveGoodData(responseData) {
      * Hijack XMLHttpRequest Request
      */
     const injectXHRHijack = () => {
-        console.info("[PluginInject] XHR Inject");
+        console.info("[PluginInject] XHR Inject - Start");
         const originalOpen = XMLHttpRequest.prototype.open;
         const originalSend = XMLHttpRequest.prototype.send;
 
-
         XMLHttpRequest.prototype.open = function (method, url, ...args) {
-            console.debug("[PluginInject] XHR request:", { method, url, args, xhr: this });
-            this._demo_url = url; // 保存url到实例
-            this._xhs_hijack_method = method;
-            return originalOpen.apply(this, [method, url, ...args]);
-        };
+            this._hijack_url = url;
+            this._hijack_method = method;
+            this._hijack_args = args;
+            this._hijack_startTime = Date.now();
 
-        XMLHttpRequest.prototype.send = function (...args) {
-            console.debug("[PluginInject] XHR response:", { url: this._demo_url, args, xhr: this });
-            if (isTargetPage(this._demo_url)) {
-                console.info("[PluginInject] XHR response: url" + this._demo_url, { url: this._demo_url, args, xhr: this });
+            console.log("[PluginInject] XHR.open:" + url, { method, url, args, xhr: this });
+
+            if (isTargetPage2(url)) {
+                console.info("[PluginInject] XHR response: url" + this._hijack_url, { url, args, xhr: this });
                 // 兼容 readyState 4
                 this.addEventListener("readystatechange", function () {
+                    console.log("[Hijack] readyState:", this.readyState, "status:", this.status);
                     if (this.readyState === 4) {
                         try {
                             console.info("[PluginInject] XHR readyState 4 event fired:", {
-                                url: this._demo_url,
+                                url: this._hijack_url,
                                 status: this.status,
                                 responseType: this.responseType,
                                 responseText: this.responseText,
@@ -194,10 +225,42 @@ function extractAndSaveGoodData(responseData) {
                         }
                     }
                 });
+                // 兼容 readyState 4
+                this.onreadystatechange = function () {
+                    console.log("[Hijack] readyState:", this.readyState, "status:", this.status);
+                    if (this.readyState === 4) {
+                        try {
+                            console.info("[PluginInject] XHR readyState 4 event fired:", {
+                                url: this._hijack_url,
+                                status: this.status,
+                                responseType: this.responseType,
+                                responseText: this.responseText,
+                                response: this.response
+                            });
+
+                            let responseData = null;
+                            try {
+                                if (this.responseType === "" || this.responseType === "text") {
+                                    responseData = JSON.parse(this.responseText);
+                                } else if (this.responseType === "json") {
+                                    responseData = this.response;
+                                }
+                                console.info("[PluginInject] Parsed XHR response:", responseData);
+                            } catch (e) {
+                                console.warn("[PluginInject] response is not valid JSON");
+                            }
+
+                            extractAndSaveGoodData(responseData);
+
+                        } catch (error) {
+                            console.warn("[PluginInject] Parse XHR request Failed!:", error);
+                        }
+                    }
+                };
                 this.addEventListener("load", function () {
                     try {
                         console.info("[PluginInject] XHR load response:", {
-                            url: this._demo_url,
+                            url: this._hijack_url,
                             status: this.status,
                             responseType: this.responseType,
                             responseText: this.responseText,
@@ -226,8 +289,19 @@ function extractAndSaveGoodData(responseData) {
                     }
                 });
             }
+            return originalOpen.apply(this, [method, url, ...args]);
+        };
+
+        XMLHttpRequest.prototype.send = function (...args) {
+            const url = this._hijack_url;
+            const method = this._hijack_method;
+
+            console.log("[PluginInject] XHR.send:", { url, method, args, xhr: this });
+
             return originalSend.apply(this, args);
         };
+
+        console.info("[PluginInject] XHR Inject - Done");
     };
 
     /**
@@ -265,20 +339,24 @@ function extractAndSaveGoodData(responseData) {
             }
         }
 
-        // add JSONP observer
-        const observer = new MutationObserver((mutationsList) => {
-            // 这里可以根据实际页面结构提取你需要的信息
-            const html = document.documentElement.innerHTML;
-            console.debug("[PluginInject] JSONP MutationObserver HTML:", html);
+        if (isTargetPage(window.location.href)) {
+            // add JSONP observer
+            const observer = new MutationObserver((mutationsList) => {
+                // 这里可以根据实际页面结构提取你需要的信息
+                const html = document.documentElement.innerHTML;
+                console.debug("[PluginInject] JSONP MutationObserver HTML:", { html });
 
-            for (const key in window) {
-                if (callbackPattern.test(key) && !originalCallbacks[key]) {
-                    rewriteJSONPCallback(key);
+                for (const key in window) {
+                    if (callbackPattern.test(key) && !originalCallbacks[key]) {
+                        rewriteJSONPCallback(key);
+                    }
                 }
-            }
-        });
+            });
 
-        observer.observe(document, { childList: true, subtree: true });
+            observer.observe(document, { childList: true, subtree: true });
+
+        }
+
     };
 
     /**

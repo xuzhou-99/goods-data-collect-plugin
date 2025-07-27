@@ -93,10 +93,15 @@ function injectScript(sendResponse) {
     } else if (isXiaohongshuPage()) {
         injectFile = "scripts/injects/xhs_collect_inject.js";
         console.log("Tmall page");
+    }  else if (isDouyinPage()) {
+        injectFile = "scripts/injects/douyin_inject.js";
+        console.log("Tmall page");
     } else {
         // injectFile = "scripts/injects/demo_inject.js";
-        // console.log("Default page");
+        console.log("Default page");
     }
+
+    // todo 新增支持抖音、快手 
 
     if (injectFile) {
         injectScriptOnce(injectFile);
@@ -206,6 +211,18 @@ function isXiaohongshuPage(url) {
     if (!url) url = window.location.href;
     // 同时匹配主站和接口域名
     return /(?:xiaohongshu\.com|edith\.xiaohongshu\.com)/.test(url);
+}
+
+
+/**
+ * 抖音页面或接口
+ * @param {*} url 
+ * @returns 
+ */
+function isDouyinPage(url) {
+    if (!url) url = window.location.href;
+    // 同时匹配主站和接口域名
+    return /(?:douyin\.com)/.test(url);
 }
 
 // --------------------------------------- 商品采集 插件 --------------------------------------- //

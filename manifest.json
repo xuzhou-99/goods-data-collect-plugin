@@ -24,7 +24,9 @@
         "*://*.tmall.com/*",
         "*://*.*.tmall.com/*",
         "*://*.xiaohongshu.com/*",
-        "*://edith.xiaohongshu.com/*"
+        "*://edith.xiaohongshu.com/*",
+        "*://*.douyin.com/*",
+        "*://www.douyin.com/*"
     ],
     "background": {
         "service_worker": "background.js",
@@ -50,7 +52,9 @@
                 "*://*.taobao.com/*",
                 "*://*.tmall.com/*",
                 "*://*.xiaohongshu.com/*",
-                "*://edith.xiaohongshu.com/*"
+                "*://edith.xiaohongshu.com/*",
+                "*://*.douyin.com/*",
+                "*://www.douyin.com/*"
             ],
             "all_frames": true,
             "run_at": "document_start"
@@ -70,7 +74,9 @@
                 "*://*.taobao.com/*",
                 "*://*.tmall.com/*",
                 "*://*.xiaohongshu.com/*",
-                "*://edith.xiaohongshu.com/*"
+                "*://edith.xiaohongshu.com/*",
+                "*://*.douyin.com/*",
+                "*://www.douyin.com/*"
             ]
         }
     ]
