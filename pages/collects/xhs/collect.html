@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>抖音数据采集</title>
+    <title>小红书数据采集</title>
+    <link rel="stylesheet" href="../common_collect.css">
     <link rel="stylesheet" href="collect.css">
 </head>
 
@@ -12,14 +13,14 @@
     <div class="container">
         <header>
             <h2>数据采集</h2>
-            <p>功能说明：采集抖音帖子信息，链接，标题，用户米，用户id</p>
+            <p>功能说明：采集小红书帖子信息，链接，标题，用户米，用户id</p>
         </header>
 
         <div class="buttons">
             <!-- 新增下拉选择框 -->
             <select id="websiteSelect">
                 <!-- <option value="all">全部</option> -->
-                <option value="douyin">抖音</option>
+                <option value="xhs">小红书</option>
                 <!-- <option value="taobao">淘宝</option> -->
                 <!-- <option value="tmall">天猫</option> -->
             </select>
@@ -53,7 +54,7 @@
     </div>
 
     <script type="module" src="/background/storage.js"></script>
-    <script src="/pages/utils.js"></script>
+    <script src="../utils.js"></script>
     <script src="collect.js"></script>
     <script src="/libs/xlsx.full.min.js"></script>
 </body>

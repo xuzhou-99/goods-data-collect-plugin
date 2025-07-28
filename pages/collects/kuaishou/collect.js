@@ -81,11 +81,11 @@ function fetchGoodData() {
 
         const activeTab = tabs[0];
         console.log("插件进入页面：", activeTab);
-        // if (!isPinduoduoPage(activeTab.url)) {
-        //     console.log("当前页面不支持插件");
-        //     tableBody.innerHTML = "<tr><td colspan='6'>未能获取数据</td></tr>";
-        //     return;
-        // }
+        if (!isTargetPage(activeTab.url)) {
+            console.log("当前页面不支持插件");
+            tableBody.innerHTML = "<tr><td colspan='6'>未能获取数据</td></tr>";
+            return;
+        }
 
         chrome.scripting.executeScript(
             {
@@ -196,20 +196,19 @@ async function exportToExcel() {
     ]);
 
 
-    utils.exportToExcel("抖音帖子数据", headers, rows)
+    utils.exportToExcel("快手数据", headers, rows)
 
 }
 
 
 
-
 /**
- * 拼多多网站
- * @returns 拼多多网站
+ * 目标网站
+ * @returns 目标网站
  */
-function isPinduoduoPage(url) {
+function isTargetPage(url) {
     if (!url) {
         url = window.location.href;
     }
-    return /\.douyin\.com\/(goods|good.*)\.html/.test(url);
+    return url.includes("kuaishou.com");
 }

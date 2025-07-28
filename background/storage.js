@@ -46,7 +46,7 @@ export function saveGoodsData(data) {
     return new Promise((resolve, reject) => {
         console.log("storeGoodsData", data);
         const tag = data.tag;
-        const goodsInfo = data.goodsInfo;
+        const goodsInfo = data.goodsInfo || data.dataInfo;
         if (!goodsInfo) {
             reject({ success: false, message: "goodsInfo is null" });
             return;

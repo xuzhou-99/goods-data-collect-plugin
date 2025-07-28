@@ -121,6 +121,31 @@ header p {
   transform: scale(0.98);
 }
 
+#clearAll {
+  background-color: #ff4d4f;
+  /* 红色背景 */
+  /* color: white; */
+  /* 白色文字 */
+  /* border: none; */
+  /* 去掉边框 */
+  /* padding: 10px 20px; */
+  /* 上下内边距 10px，左右内边距 20px */
+  /* font-size: 16px; */
+  /* 字体大小 */
+  /* border-radius: 5px; */
+  /* 圆角按钮 */
+  /* cursor: pointer; */
+  /* 鼠标悬停时显示为手型 */
+  /* transition: background-color 0.3s ease; */
+  /* 背景色变化过渡效果 */
+}
+
+#clearAll:hover {
+  background-color: #ff7875;
+  /* 悬停时变为淡红色 */
+}
+
+
 /* 信息框 */
 .info-box {
   padding: 10px 15px;

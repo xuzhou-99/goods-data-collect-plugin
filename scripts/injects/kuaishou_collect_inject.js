@@ -11,29 +11,35 @@ function isTargetPage(url) {
     }
 
     // todo: targetPage_url regex
-    const check = url.includes("douyin.com") || /(^\/aweme\/v1\/web\/tab\/feed)|douyin\.com\/aweme\/v1\/web\/tab\/feed/.test(url);;
+    const check = url.includes("kuaishou.com");
     console.debug("[PluginInject] isTargetPage:", check);
     return check;
 }
 
 
 /**
- * is target page
- * 直接打开的小红书帖子页面
+ * is target url
  * 
  * @param {www.xiaohongshu.com/explore} url 
  * @returns 
  */
-function isTargetPage2(url) {
+function isTargetUrl(url) {
     if (!url) {
         return false;
     }
-    // 只匹配抖音 feed 接口，支持绝对路径和完整域名
-    return /(^\/aweme\/v1\/web\/tab\/feed)|(^https:\/\/www\.douyin\.com\/aweme\/v1\/web\/tab\/feed)|(\/aweme\/v1\/web\/aweme\/detail)/.test(url);
+    // 只匹配 short-video 接口，支持绝对路径和完整域名
+    // https://www.kuaishou.com/short-video/
+    return url && (
+        url.includes('/graphql') ||
+        url.includes('/api/') ||
+        url.includes('/rest/') ||
+        url.includes('/short-video/')
+    );
 }
 
 /**
 * extract data-taobao
+* @param {*} dataSource 
 * @param {*} sendResponse 
 * @returns 
 */
@@ -42,44 +48,77 @@ function extractGoodData(dataSource, sendResponse) {
     // console.debug("[PluginInject] Sourcedata:", dataSource);
 
     try {
-        // 针对抖音 aweme_list 数据结构提取
-        let aweme = null;
-        if (dataSource && dataSource.aweme_list && Array.isArray(dataSource.aweme_list) && dataSource.aweme_list.length > 0) {
-            aweme = dataSource.aweme_list[0];
-        } else if (dataSource && dataSource.aweme_detail) {
-            aweme = dataSource.aweme_detail;
-        }
 
-        if (!aweme) {
-            sendResponse({ success: false, message: "Not Found target data!" });
-            return;
-        }
-        const pageUrl = window.location.href;
-
-        // 提取核心信息
-        const goodInfo = {
-            id: aweme.aweme_id,
-            aweme_id: aweme.aweme_id,
-            title: aweme.item_title || aweme.desc,
-            desc: aweme.desc,
-            author: {
-                nickname: aweme.author?.nickname,
-                avatar: aweme.author?.avatar_thumb?.url_list?.[0],
-                uid: aweme.author?.uid,
-                sec_uid: aweme.author?.sec_uid,
-                user_id: aweme.author?.uid,
-            },
-            cover: aweme.video?.cover?.url_list?.[0],
-            video_urls: aweme.video?.play_addr?.url_list || [],
-            duration: aweme.video?.duration,
-            statistics: aweme.statistics,
-            share_url: aweme.share_url,
-            tags: aweme.text_extra?.map(t => t.hashtag_name) || [],
-            url: pageUrl,
-            raw: aweme,
+        var success = false;
+        // 存放提取的商品数据
+        var goodInfo = {
+            // tabOrder: currentTabOrder, // 附带序列号
         };
 
-        sendResponse({ success: true, goodInfo });
+        // // 针对快手 aweme_list 数据结构提取
+        // let videoData = null;
+        // // 情况1：直接包含aweme_detail
+        // if (responseData?.data?.aweme_detail) {
+        //     videoData = responseData.data.aweme_detail;
+        // }
+        // // 情况2：包含aweme_list
+        // else if (responseData?.aweme_list?.[0]) {
+        //     videoData = responseData.aweme_list[0];
+        // }
+        // // 情况3：GraphQL响应结构
+        // else if (responseData?.data?.visionVideoDetail?.videoInfo) {
+        //     videoData = responseData.data.visionVideoDetail.videoInfo;
+        // }
+
+        // if (!videoData) {
+        //     sendResponse({ success: false, message: "Not Found target data!" });
+        //     return;
+        // }
+        // const pageUrl = window.location.href;
+
+        // // 提取核心信息
+        // const dataInfo = {
+        //     id: videoData.aweme_id || videoData.photoId,
+        //     desc: videoData.desc || videoData.caption,
+        //     createTime: videoData.createTime,
+        //     author: {
+        //         userId: videoData.author?.uid || videoData.author?.userId,
+        //         nickname: videoData.author?.nickname,
+        //         avatar: videoData.author?.avatarThumb?.urls?.[0]
+        //     },
+        //     stats: {
+        //         likeCount: videoData.statistics?.likeCount || videoData.likeCount,
+        //         commentCount: videoData.statistics?.commentCount,
+        //         shareCount: videoData.statistics?.shareCount
+        //     },
+        //     video: {
+        //         duration: videoData.video?.duration,
+        //         coverUrl: videoData.video?.coverUrl || videoData.video?.cover?.urls?.[0],
+        //         playUrl: videoData.video?.playUrl || videoData.video?.playAddr?.urls?.[0],
+        //         bitRateList: videoData.video?.bitRateList
+        //     },
+        //     rawData: videoData
+        // };
+
+
+
+        // F1：直接从 Apollo State 提取数据
+        var result = extractKsDataFromApolloState(dataSource, (dataInfo) => {
+            return dataInfo;
+        });
+        if (result) {
+            success = true;
+        }
+
+        // F2：如果 F1 没有提取到数据，则尝试从其他方式提取
+
+        var dataInfo = result;
+
+        if (success == true) {
+            sendResponse({ success: true, goodInfo: dataInfo });
+        } else {
+            sendResponse({ success: false, message: "Extracted goodInfo empty!" });
+        }
     } catch (error) {
         sendResponse({ success: false, message: "Extract data failed" });
     }
@@ -89,17 +128,17 @@ function extractGoodData(dataSource, sendResponse) {
 function extractAndSaveGoodData(responseData) {
     extractGoodData(responseData, (sendResponse) => {
         if (sendResponse.success) {
-            const goodInfo = sendResponse.goodInfo;
+            const dataInfo = sendResponse.goodInfo;
             const goodsInfo = {
-                tag: 'douyin',
-                goodsInfo: goodInfo
+                tag: 'kuaishou',
+                goodsInfo: dataInfo
             }
             console.log("[PluginInject] Plugin success, send to window, dataInfo: ", goodsInfo);
 
             window.postMessage({
                 type: 'extract-data-response',
-                tag: 'douyin',
-                goodInfo: goodInfo,
+                tag: 'kuaishou',
+                goodInfo: dataInfo,
             }, "*");
 
         } else {
@@ -108,22 +147,147 @@ function extractAndSaveGoodData(responseData) {
     });
 };
 
+/**
+ * 从页面脚本中提取快手视频数据
+ */
+function extractKsDataFromApolloState(initialState) {
+    try {
+        // 1. 尝试从 __APOLLO_STATE__ 提取
+        if (initialState) {
+            const apolloState = initialState;
+            const rootQuery = apolloState.defaultClient?.ROOT_QUERY;
+            if (!rootQuery) {
+                console.warn('[快手数据提取] 未找到ROOT_QUERY');
+                return null;
+            }
 
+            // 查找视频详情查询结果
+            const videoDetailKey = Object.keys(rootQuery).find(key =>
+                key.startsWith('visionVideoDetail({"page":"detail"')
+            );
+
+            if (videoDetailKey) {
+                const videoDetailId = rootQuery[videoDetailKey].id;
+                const videoDetail = apolloState.defaultClient[videoDetailId];
+
+                if (videoDetail) {
+                    // 提取作者信息
+                    const authorId = videoDetail.author.id;
+                    const author = apolloState.defaultClient[authorId];
+
+                    // 提取视频信息
+                    const photoId = videoDetail.photo.id;
+                    const photo = apolloState.defaultClient[photoId];
+
+                    // 提取标签信息
+                    const tags = videoDetail.tags.map(tag => {
+                        const tagId = tag.id;
+                        return apolloState.defaultClient[tagId];
+                    });
+
+                    // 提取视频资源信息
+                    const videoResource = photo.videoResource?.json;
+                    const pageUrl = window.location.href;
+
+
+                    // 构建结构化数据
+                    const result = {
+                        id: photo.id,
+                        photoId: photo.id,
+                        title: photo.caption,
+                        desc: photo.caption,
+                        cover: photo.coverUrl,
+                        tags: tags.map(tag => tag.name) || [],
+                        duration: photo.duration,
+                        url: pageUrl,
+                        author: {
+                            user_id: author.id,
+                            userId: author.id,
+                            nickname: author.name,
+                            headerUrl: author.headerUrl,
+                            following: author.following
+                        },
+                        videoInfo: {
+                            id: photo.id,
+                            photoId: photo.id,
+                            caption: photo.caption,
+                            duration: photo.duration,
+                            createTime: photo.timestamp,
+                            likeCount: photo.realLikeCount || parseInt(photo.likeCount) || 0,
+                            viewCount: parseInt(photo.viewCount) || 0,
+                            coverUrl: photo.coverUrl,
+                            videoUrl: photo.photoUrl,
+                            videoRatio: photo.videoRatio,
+                            manifest: photo.manifestH265?.json,
+                            tags: tags.map(tag => tag.name),
+                            riskTag: photo.riskTagContent,
+                            shareUrl: window.location.href.split('?')[0]
+                        },
+                        videoResources: {
+                            h264: videoResource?.h264,
+                            h265: videoResource?.hevc,
+                            bestQualityUrl: getBestQualityUrl(videoResource)
+                        },
+                        rawData: videoDetail
+                    };
+
+                    console.log('[快手数据提取] 从APOLLO_STATE提取成功', result);
+                    return result;
+                }
+            }
+        }
+
+        // 2. 如果APOLLO_STATE没有，尝试其他方式
+        console.warn('[快手数据提取] 未找到APOLLO_STATE数据，尝试其他方式');
+        return null;
+    } catch (error) {
+        console.error('[快手数据提取] 提取数据出错:', error);
+        return null;
+    }
+}
+
+/**
+ * 获取最佳画质的视频URL
+ */
+function getBestQualityUrl(videoResource) {
+    if (!videoResource) return null;
+
+    // 优先尝试HEVC(H265)
+    if (videoResource.hevc) {
+        const hevcReps = videoResource.hevc.adaptationSet[0]?.representation;
+        if (hevcReps?.length) {
+            // 按码率排序获取最高质量
+            const sorted = [...hevcReps].sort((a, b) => b.avgBitrate - a.avgBitrate);
+            return sorted[0].url;
+        }
+    }
+
+    // 回退到H264
+    if (videoResource.h264) {
+        const h264Reps = videoResource.h264.adaptationSet[0]?.representation;
+        if (h264Reps?.length) {
+            const sorted = [...h264Reps].sort((a, b) => b.avgBitrate - a.avgBitrate);
+            return sorted[0].url;
+        }
+    }
+
+    return null;
+}
 
 
 
 (function () {
 
     console.log("[PluginInject] [Target Website page] inject js, url:", window.location.href);
-    if (window.__XHS_PLUGIN_INJECTED__) {
+    if (window.__COLLECT_PLUGIN_INJECTED__) {
         // 已经注入过，直接返回
         return;
     }
-    window.__XHS_PLUGIN_INJECTED__ = true;
+    window.__COLLECT_PLUGIN_INJECTED__ = true;
 
     /**
- * Hijack Axios Request
- */
+    * Hijack Axios Request
+    */
     const injectAxiosHijack = () => {
         console.info("[PluginInject] Axios Inject");
         // check axios exist
@@ -135,7 +299,7 @@ function extractAndSaveGoodData(responseData) {
             // add interceptors
             originalAxios.interceptors.response.use(
                 function (responseData) {
-                    if (isTargetPage2(responseData.config.url)) {
+                    if (isTargetUrl(responseData.config.url)) {
                         console.info("[PluginInject] Hijack Axios url:" + responseData.config.url + "response:", responseData);
 
                         // todo: extract data
@@ -159,15 +323,17 @@ function extractAndSaveGoodData(responseData) {
         const originalFetch = window.fetch;
         window.fetch = async function (...args) {
             console.info("[PluginInject] Hijack Fetch Request: url:{}", args[0], args);
+            const [input, init] = args;
+            const url = typeof input === 'string' ? input : input.url;
             const response = await originalFetch.apply(this, args);
-            const clonedResponse = response.clone();
 
-            if (isTargetPage2(args[0])) {
-                clonedResponse.json().then((responseData) => {
-                    console.info("[PluginInject] Hijack Fetch response:", responseData);
+            if (isTargetUrl(url)) {
+                const clonedResponse = response.clone();
+                clonedResponse.json().then((data) => {
+                    console.info("[PluginInject] Hijack Fetch response:", { url, data });
 
                     // todo: extract data
-                    extractAndSaveGoodData(responseData);
+                    extractAndSaveGoodData(data);
                 });
             }
             return response;
@@ -191,7 +357,7 @@ function extractAndSaveGoodData(responseData) {
 
             console.log("[PluginInject] XHR.open:" + url, { method, url, args, xhr: this });
 
-            if (isTargetPage2(url)) {
+            if (isTargetUrl(url)) {
                 console.info("[PluginInject] XHR response: url" + this._hijack_url, { url, args, xhr: this });
                 // 兼容 readyState 4
                 this.addEventListener("readystatechange", function () {
@@ -365,22 +531,22 @@ function extractAndSaveGoodData(responseData) {
     const injectOtherHijack = () => {
         console.info("[PluginInject] Other Inject");
 
-        // 仅在详情页等 document 请求时尝试提取 window.__INITIAL_STATE__
+        // 仅在详情页等 document 请求时尝试提取 window.__APOLLO_STATE__
         function extractFromInitialState() {
             try {
                 let state;
-                if (window.__INITIAL_STATE__) {
-                    state = window.__INITIAL_STATE__;
+                if (window.__APOLLO_STATE__) {
+                    state = window.__APOLLO_STATE__;
                 } else {
-                    const script = document.querySelector('script#__INITIAL_STATE__');
+                    const script = document.querySelector('script#__APOLLO_STATE__');
                     if (script) {
                         state = JSON.parse(script.textContent);
                     }
                 }
-                console.log("[PluginInject] 页面window.__INITIAL_STATE__提取成功", state);
+                console.log("[PluginInject] 页面 window.__APOLLO_STATE__ 提取成功", state);
                 extractAndSaveGoodData(state);
             } catch (e) {
-                console.warn("[PluginInject] 提取 window.__INITIAL_STATE__ 失败", e);
+                console.warn("[PluginInject] 页面 window.__APOLLO_STATE__ 提取失败", e);
             }
         }
 

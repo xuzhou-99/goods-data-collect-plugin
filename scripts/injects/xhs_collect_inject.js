@@ -3,11 +3,11 @@
 (function () {
 
     console.log("[PluginInject] [Target Website page] inject js, url:", window.location.href);
-    if (window.__XHS_PLUGIN_INJECTED__) {
+    if (window.__COLLECT_PLUGIN_INJECTED__) {
         // 已经注入过，直接返回
         return;
     }
-    window.__XHS_PLUGIN_INJECTED__ = true;
+    window.__COLLECT_PLUGIN_INJECTED__ = true;
 
     /**
      * is target page
@@ -82,6 +82,7 @@
         try {
             const pageUrl = window.location.href;
             let itemObj;
+            var success = false;
 
             // 1. 判断是否为接口格式
             if (dataSource && dataSource.data && Array.isArray(dataSource.data.items)) {
@@ -109,6 +110,7 @@
                     };
                 });
                 itemObj = items[0];
+                success = true;
             }
             // 2. 判断是否为 __INITIAL_STATE__ 格式
             else if (
@@ -143,12 +145,15 @@
                     url: pageUrl,
                     raw: note
                 };
-            } else {
-                sendResponse({ success: false, message: "Not Found target data!" });
-                return;
+                success = true;
             }
 
-            sendResponse({ success: true, goodInfo: itemObj });
+            if (success == true) {
+                const goodInfo = itemObj;
+                sendResponse({ success: true, goodInfo });
+            } else {
+                sendResponse({ success: false, message: "Empty Data!" });
+            }
 
         } catch (error) {
             sendResponse({ success: false, message: "Extract data failed" });

@@ -33,18 +33,18 @@ window.addEventListener("message", (event) => {
     console.debug("Window Message Data:", event.data);
 
     if (event.data.type === 'extract-data-response') {
-        const goodsData = {
+        const dataInfo = {
             tag: event.data.tag,
-            goodsInfo: event.data.goodInfo
+            dataInfo: event.data.goodInfo || event.data.dataInfo
         }
 
         // 附带序列号
-        if (!goodsData.goodsInfo.tabOrder) {
-            goodsData.goodsInfo.tabOrder = currentTabOrder
+        if (!dataInfo.dataInfo.tabOrder) {
+            dataInfo.dataInfo.tabOrder = currentTabOrder
         }
 
         // 如果需要传递给 background.js，可使用 chrome.runtime.sendMessage
-        chrome.runtime.sendMessage({ app: "GoodsCollect", action: "saveGoodsInfoData", data: goodsData, });
+        chrome.runtime.sendMessage({ app: "GoodsCollect", action: "saveGoodsInfoData", data: dataInfo, });
     }
 
     if (event.data.type === 'extract-script-response') {
@@ -93,8 +93,11 @@ function injectScript(sendResponse) {
     } else if (isXiaohongshuPage()) {
         injectFile = "scripts/injects/xhs_collect_inject.js";
         console.log("Tmall page");
-    }  else if (isDouyinPage()) {
-        injectFile = "scripts/injects/douyin_inject.js";
+    } else if (isDouyinPage()) {
+        injectFile = "scripts/injects/douyin_collect_inject.js";
+        console.log("Tmall page");
+    } else if (isKuaishouPage()) {
+        injectFile = "scripts/injects/kuaishou_collect_inject.js";
         console.log("Tmall page");
     } else {
         // injectFile = "scripts/injects/demo_inject.js";
@@ -223,6 +226,18 @@ function isDouyinPage(url) {
     if (!url) url = window.location.href;
     // 同时匹配主站和接口域名
     return /(?:douyin\.com)/.test(url);
+}
+
+/**
+ * 快手页面或接口
+ * 
+ * @param {*} url 
+ * @returns 
+ */
+function isKuaishouPage(url) {
+    if (!url) url = window.location.href;
+    // 同时匹配主站和接口域名
+    return /(?:kuaishou\.com)/.test(url);
 }
 
 // --------------------------------------- 商品采集 插件 --------------------------------------- //

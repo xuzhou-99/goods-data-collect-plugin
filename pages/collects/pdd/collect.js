@@ -196,7 +196,7 @@ async function exportToExcel() {
         item.statusExplain || "无",
     ]);
 
-    utils.exportToExcel('商品信息', headers, rows)
+    utils.exportToExcel('拼多多商品信息', headers, rows)
 
 }
 
