@@ -21,6 +21,8 @@ function isTargetPage(url) {
  * is target page
  * 直接打开的小红书帖子页面
  * 
+ * www.douyin.com/aweme/v1/web/aweme/post
+ * 
  * @param {www.xiaohongshu.com/explore} url 
  * @returns 
  */
@@ -29,7 +31,9 @@ function isTargetPage2(url) {
         return false;
     }
     // 只匹配抖音 feed 接口，支持绝对路径和完整域名
-    return /(^https:\/\/www\.douyin\.com\/aweme\/v1\/web\/tab\/feed)|(^\/aweme\/v1\/web\/tab\/feed)|(\/aweme\/v1\/web\/aweme\/detail)/.test(url);
+    return /(^https:\/\/www\.douyin\.com\/aweme\/v1\/web\/tab\/feed)/.test(url)
+        || /(\/aweme\/v1\/web\/tab\/feed)|(\/aweme\/v1\/web\/aweme\/detail)/.test(url)
+        || /(\/aweme\/v1\/web\/aweme\/post)/.test(url);
 }
 
 /**
@@ -45,22 +49,29 @@ function extractGoodData(dataSource, sendResponse) {
         var success = false;
         // 存放提取的商品数据
 
+        var pageUrl = window.location.href;
+        if (pageUrl.endsWith('https://www.douyin.com/')) {
+            // 如果是首页，直接返回
+            pageUrl = aweme.share_url;
+        }
+
         // 针对抖音 aweme_list 数据结构提取
         let aweme = null;
+
         if (dataSource && dataSource.aweme_list && Array.isArray(dataSource.aweme_list) && dataSource.aweme_list.length > 0) {
             aweme = dataSource.aweme_list[0];
         } else if (dataSource && dataSource.aweme_detail) {
             aweme = dataSource.aweme_detail;
         }
 
+        if (pageUrl.startsWith("https://www.douyin.com/note/")) {
+            // 图片链接
+
+        }
+
         if (!aweme) {
             sendResponse({ success: false, message: "Not Found target data!" });
             return;
-        }
-        var pageUrl = window.location.href;
-        if (pageUrl.endsWith('https://www.douyin.com/')) {
-            // 如果是首页，直接返回
-            pageUrl = aweme.share_url;
         }
 
         // 提取核心信息
@@ -134,59 +145,6 @@ function extractAndSaveGoodData(responseData) {
     }
     window.__COLLECT_PLUGIN_INJECTED__ = true;
 
-    /**
-     * Hijack Axios Request
-     */
-    const injectAxiosHijack = () => {
-        console.info("[PluginInject] Axios Inject");
-        // check axios exist
-        if (window.axios) {
-            // backip axios
-            const originalAxios = window.axios;
-            console.info("[PluginInject] Hijack Axios:", originalAxios);
-
-            // add interceptors
-            originalAxios.interceptors.response.use(
-                function (responseData) {
-                    if (isTargetPage2(responseData.config.url)) {
-                        console.info("[PluginInject] Hijack Axios url:" + responseData.config.url + "response:", responseData);
-
-                        // todo: extract data
-                        extractAndSaveGoodData(responseData);
-
-                    }
-                    return responseData;
-                },
-                function (error) {
-                    return Promise.reject(error);
-                }
-            );
-        }
-    }
-
-    /**
-     * Hijack Fetch Request
-     */
-    const injectFetchHijack = () => {
-        console.info("[PluginInject] Fetch Inject");
-        const originalFetch = window.fetch;
-        window.fetch = async function (...args) {
-            console.info("[PluginInject] Hijack Fetch Request: url:{}", args[0], args);
-            const response = await originalFetch.apply(this, args);
-            const clonedResponse = response.clone();
-
-            if (isTargetPage2(args[0])) {
-                clonedResponse.json().then((responseData) => {
-                    console.info("[PluginInject] Hijack Fetch response:", responseData);
-
-                    // todo: extract data
-                    extractAndSaveGoodData(responseData);
-                });
-            }
-            return response;
-        };
-    };
-
 
     /**
      * Hijack XMLHttpRequest Request
@@ -202,7 +160,12 @@ function extractAndSaveGoodData(responseData) {
             this._hijack_args = args;
             this._hijack_startTime = Date.now();
 
-            console.log("[PluginInject] XHR.open:" + url, { method, url, args, xhr: this });
+            console.log("[PluginInject] XHR.open:" + url, {
+                method,
+                url,
+                args,
+                // xhr: this
+            });
 
             if (isTargetPage2(url)) {
                 console.info("[PluginInject] XHR response: url" + this._hijack_url, { url, args, xhr: this });
@@ -309,7 +272,12 @@ function extractAndSaveGoodData(responseData) {
             const url = this._hijack_url;
             const method = this._hijack_method;
 
-            console.log("[PluginInject] XHR.send:", { url, method, args, xhr: this });
+            console.log("[PluginInject] XHR.send:", {
+                url,
+                method,
+                args,
+                // xhr: this
+            });
 
             return originalSend.apply(this, args);
         };
@@ -317,60 +285,6 @@ function extractAndSaveGoodData(responseData) {
         console.info("[PluginInject] XHR Inject - Done");
     };
 
-    /**
-     * Hijack JSONP Request
-     */
-    const injectJSONPHijack = () => {
-        console.info("[PluginInject] JSONP Inject");
-
-        const originalCallbacks = {};
-
-        // rewrite JSONP callback
-        const rewriteJSONPCallback = (callbackName) => {
-            if (window[callbackName] && typeof window[callbackName] === 'function') {
-                originalCallbacks[callbackName] = window[callbackName];
-                window[callbackName] = function (res) {
-                    console.debug(`[PluginInject] Hijack JSONP ${callbackName}:`, res);
-
-                    if (res && res.api == 'mtop.taobao.pcdetail.data.get') {
-                        console.debug("[PluginInject] Hijack JSONP response:", res);
-
-                        extractAndSaveGoodData(res);
-                    }
-
-                    // call original callback
-                    originalCallbacks[callbackName](res);
-                };
-            }
-        };
-
-        // all JSONP callback function
-        const callbackPattern = /^mtopjsonppcdetail\d+$/;
-        for (const key in window) {
-            if (callbackPattern.test(key)) {
-                rewriteJSONPCallback(key);
-            }
-        }
-
-        if (isTargetPage(window.location.href)) {
-            // add JSONP observer
-            const observer = new MutationObserver((mutationsList) => {
-                // 这里可以根据实际页面结构提取你需要的信息
-                const html = document.documentElement.innerHTML;
-                console.debug("[PluginInject] JSONP MutationObserver HTML:", { html });
-
-                for (const key in window) {
-                    if (callbackPattern.test(key) && !originalCallbacks[key]) {
-                        rewriteJSONPCallback(key);
-                    }
-                }
-            });
-
-            observer.observe(document, { childList: true, subtree: true });
-
-        }
-
-    };
 
     /**
      * Hijack web page to extract data
@@ -411,13 +325,7 @@ function extractAndSaveGoodData(responseData) {
 
     // ---------------------------- start --------------------------- //
 
-    injectFetchHijack();// Fetch
-
     injectXHRHijack(); // XHR
-
-    injectAxiosHijack(); // Axios
-
-    injectJSONPHijack(); // JSONP
 
     injectOtherHijack(); // Other
 

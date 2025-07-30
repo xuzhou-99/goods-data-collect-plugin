@@ -69,6 +69,12 @@ export function saveGoodsData(data) {
                         addFlag = false;
                         break;
                     }
+                    // // id may not exist, use id to distinct
+                    // if (goodsData[i] && goodsData[i].id && goodsInfo.id && goodsData[i].id == goodsInfo.id) {
+                    //     goodsData[i] = goodsInfo;
+                    //     addFlag = false;
+                    //     break;
+                    // }
                 }
             }
 

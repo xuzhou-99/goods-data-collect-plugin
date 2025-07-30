@@ -151,7 +151,8 @@ function renderTable(data) {
             item.title || "无",
             item.url || "无",
             item.author?.nickname || "无",
-            item.author?.user_id || "无",
+            item.author?.sec_uid || "无",
+            item.author?.unique_id || "无",
             item.statusExplain || "无",
         ];
         cells.forEach(cellData => {
@@ -186,12 +187,13 @@ async function exportToExcel() {
 
 
     // 准备 Excel 数据：表头和内容
-    const headers = ["标题", "链接", "用户名", "用户id", "备注"];
+    const headers = ["标题", "链接", "用户名", "用户id", "抖音号", "备注"];
     const rows = data.map((item) => [
         item.title || "无",
         item.url || "无",
         item.author?.nickname || "无",
-        item.author?.user_id || "无",
+        item.author?.sec_uid || "无",
+        item.author?.unique_id || "无",
         item.statusExplain || "无",
     ]);
 
