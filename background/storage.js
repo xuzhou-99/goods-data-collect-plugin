@@ -62,7 +62,7 @@ export function saveGoodsData(data) {
                 goodsData = [];
             }
             var addFlag = true;
-            if (distinctFlag) {
+            if (distinctFlag || tag === 'douyin' || tag === 'xhs' || tag === 'kuaishou') {
                 for (var i = 0; i < goodsData.length; i++) {
                     if (goodsData[i] && goodsData[i].goodsID && goodsInfo.goodsID && goodsData[i].goodsID == goodsInfo.goodsID) {
                         goodsData[i] = goodsInfo;
@@ -80,9 +80,9 @@ export function saveGoodsData(data) {
 
             if (addFlag) {
                 goodsData.push(goodsInfo);
-                console.log("DataInfo add，goodId:", goodsInfo.goodsID);
+                console.log("DataInfo add, id:", goodsInfo.id || goodsInfo.goodsID);
             } else {
-                console.log("DataInfo update，goodId:", goodsInfo.goodsID);
+                console.log("DataInfo update, id:", goodsInfo.id || goodsInfo.goodsID);
             }
 
 
