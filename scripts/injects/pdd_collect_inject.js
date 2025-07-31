@@ -87,6 +87,7 @@
                 // 商品信息
                 const goods = initDataObj.goods;
                 if (goods) {
+                    goodInfo.id = goods.goodsId;
                     goodInfo.goodsName = goods.goodsName;
                     goodInfo.goodsID = goods.goodsID;
                     goodInfo.goodsSales = goods.sideSalesTip;
@@ -115,10 +116,8 @@
         }
     }
 
-    const injectOtherHijack = () => {
-        console.info("[PluginInject] Other Inject");
-
-        extractGoodData('', (sendResponse) => {
+    function extractGoodData(responseData) {
+        extractGoodData(responseData, (sendResponse) => {
             if (sendResponse.success) {
                 const goodInfo = sendResponse.goodInfo;
                 const goodsInfo = {
@@ -136,7 +135,13 @@
             } else {
                 console.info("[PluginInject] Plugin error:", sendResponse.message);
             }
-        });
+        })
+    };
+
+    const injectOtherHijack = () => {
+        console.info("[PluginInject] Other Inject");
+
+        extractGoodData('');
 
         console.debug("[PluginInject] Other Inject Finished");
     };

@@ -69,6 +69,7 @@
                 // 商品信息
                 const item = initDataObj.item;
                 if (item) {
+                    goodInfo.id = item.itemId;
                     goodInfo.goodsName = item.title;
                     goodInfo.goodsID = item.itemId;
                     goodInfo.goodsLink = item.qrCode;
@@ -95,6 +96,29 @@
         }
     }
 
+    function extractAndSaveGoodData(responseData) {
+        extractGoodData(responseData, (sendResponse) => {
+            if (sendResponse.success) {
+                const goodInfo = sendResponse.goodInfo;
+                goodInfo.pSource = 'Tmall';
+                const goodsInfo = {
+                    tag: 'taobao',
+                    goodsInfo: goodInfo
+                }
+                console.log("[PluginInject] Plugin success, send to window, dataInfo: ", goodsInfo);
+
+                window.postMessage({
+                    type: 'extract-data-response',
+                    tag: 'taobao',
+                    goodInfo: goodInfo,
+                }, "*");
+
+            } else {
+                console.info("[PluginInject] Plugin error:", sendResponse.message);
+            }
+        });
+    };
+
     /**
     * Hijack JSONP Request
     */
@@ -113,26 +137,7 @@
                     if (res && isTargetPage(res.api)) {
                         console.debug("[PluginInject] Hijack JSONP response:", res);
 
-                        extractGoodData(res, (sendResponse) => {
-                            if (sendResponse.success) {
-                                const goodInfo = sendResponse.goodInfo;
-                                goodInfo.pSource = 'Tmall';
-                                const goodsInfo = {
-                                    tag: 'taobao',
-                                    goodsInfo: goodInfo
-                                }
-                                console.log("[PluginInject] Plugin success, send to window, dataInfo: ", goodsInfo);
-
-                                window.postMessage({
-                                    type: 'extract-data-response',
-                                    tag: 'taobao',
-                                    goodInfo: goodInfo,
-                                }, "*");
-
-                            } else {
-                                console.info("[PluginInject] Plugin error:", sendResponse.message);
-                            }
-                        });
+                        extractAndSaveGoodData(res);
                     }
 
                     // call original callback

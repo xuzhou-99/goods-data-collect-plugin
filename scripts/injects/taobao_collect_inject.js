@@ -55,6 +55,7 @@
                 // 商品信息
                 const item = initDataObj.item;
                 if (item) {
+                    goodInfo.id = item.itemId;
                     goodInfo.goodsName = item.title;
                     goodInfo.goodsID = item.itemId;
                     goodInfo.goodsLink = item.qrCode;
@@ -79,6 +80,29 @@
         }
     }
 
+    function extractAndSaveGoodData(responseData) {
+        extractGoodData(responseData, (sendResponse) => {
+            if (sendResponse.success) {
+                const goodInfo = sendResponse.goodInfo;
+                goodInfo.pSource = 'taobao';
+                const goodsInfo = {
+                    tag: 'taobao',
+                    goodsInfo: goodInfo
+                }
+                console.log("[PluginInject] Plugin success, send to window, dataInfo: ", goodsInfo);
+
+                // send message to content.js
+                window.postMessage({
+                    type: 'extract-data-response',
+                    tag: 'taobao',
+                    goodInfo: goodInfo,
+                }, "*");
+
+            } else {
+                console.info("[PluginInject] Plugin error:", sendResponse.message);
+            }
+        });
+    };
 
     const injectXHRHijack = () => {
         console.info("[PluginInject] XHR Inject");
@@ -92,36 +116,7 @@
                         const responseData = JSON.parse(this.responseText);
                         console.debug("[PluginInject] Hijack XHR response:", responseData);
 
-                        // if (responseData && responseData.data) {
-                        //     // send message to content.js
-                        //     window.postMessage({
-                        //         type: 'extract-data-response',
-                        //         data: responseData.data,
-                        //         userInfo: userInfo,
-                        //     }, "*");
-                        // }
-
-                        extractGoodData(responseData, (sendResponse) => {
-                            if (sendResponse.success) {
-                                const goodInfo = sendResponse.goodInfo;
-                                goodInfo.pSource = 'taobao';
-                                const goodsInfo = {
-                                    tag: 'taobao',
-                                    goodsInfo: goodInfo
-                                }
-                                console.log("[PluginInject] Plugin success, send to window, dataInfo: ", goodsInfo);
-
-                                // send message to content.js
-                                window.postMessage({
-                                    type: 'extract-data-response',
-                                    tag: 'taobao',
-                                    goodInfo: goodInfo,
-                                }, "*");
-
-                            } else {
-                                console.info("[PluginInject] Plugin error:", sendResponse.message);
-                            }
-                        });
+                        extractAndSaveGoodData(responseData)
 
                     } catch (error) {
                         console.warn("[PluginInject] Parse XHR request Failed!:", error);

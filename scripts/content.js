@@ -45,6 +45,9 @@ window.addEventListener("message", (event) => {
 
         // 如果需要传递给 background.js，可使用 chrome.runtime.sendMessage
         chrome.runtime.sendMessage({ app: "GoodsCollect", action: "saveGoodsInfoData", data: dataInfo, });
+
+        // 通知 background 当前页面采集完成
+        chrome.runtime.sendMessage({ action: "markCompleted" });
     }
 
     if (event.data.type === 'extract-script-response') {
@@ -107,6 +110,10 @@ function injectScript(sendResponse) {
     // todo 新增支持抖音、快手 
 
     if (injectFile) {
+
+        // 设置 badge 标识-开始提取
+        chrome.runtime.sendMessage({ action: "markPending" });
+
         injectScriptOnce(injectFile);
         sendResponse({ success: true });
     } else {

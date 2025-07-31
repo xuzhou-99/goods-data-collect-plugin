@@ -44,11 +44,11 @@ const distinctFlag = false;
  */
 export function saveGoodsData(data) {
     return new Promise((resolve, reject) => {
-        console.log("storeGoodsData", data);
+        console.log("storeData", data);
         const tag = data.tag;
         const goodsInfo = data.goodsInfo || data.dataInfo;
         if (!goodsInfo) {
-            reject({ success: false, message: "goodsInfo is null" });
+            reject({ success: false, message: "DataInfo is null" });
             return;
         }
         if (!goodsTag[tag]) {
@@ -69,20 +69,20 @@ export function saveGoodsData(data) {
                         addFlag = false;
                         break;
                     }
-                    // // id may not exist, use id to distinct
-                    // if (goodsData[i] && goodsData[i].id && goodsInfo.id && goodsData[i].id == goodsInfo.id) {
-                    //     goodsData[i] = goodsInfo;
-                    //     addFlag = false;
-                    //     break;
-                    // }
+                    // id may not exist, use id to distinct
+                    if (goodsData[i] && goodsData[i].id && goodsInfo.id && goodsData[i].id == goodsInfo.id) {
+                        goodsData[i] = goodsInfo;
+                        addFlag = false;
+                        break;
+                    }
                 }
             }
 
             if (addFlag) {
                 goodsData.push(goodsInfo);
-                console.log("GoodInfo add，goodId:", goodsInfo.goodsID);
+                console.log("DataInfo add，goodId:", goodsInfo.goodsID);
             } else {
-                console.log("GoodInfo update，goodId:", goodsInfo.goodsID);
+                console.log("DataInfo update，goodId:", goodsInfo.goodsID);
             }
 
 
@@ -112,7 +112,7 @@ export function saveGoodsData(data) {
  */
 export function clearGoodsData(tag) {
     return new Promise((resolve, reject) => {
-        console.log("clearGoodsData tag:", tag);
+        console.log("clearData tag:", tag);
         if (goodsTag[tag]) {
             chrome.storage.local.set({ [goodsTag[tag]]: [] }, () => {
                 console.info("localStorage clear success，tag:%s, database: %s", tag, goodsTag[tag]);
