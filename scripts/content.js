@@ -48,11 +48,12 @@ window.addEventListener("message", (event) => {
 
         // 通知 background 当前页面采集完成
         chrome.runtime.sendMessage({ action: "markCompleted" });
+
+        // ✅ 修改页面标题，加上 ✔ 标志
+        markTitle('done');
     }
 
-    if (event.data.type === 'extract-script-response') {
 
-    }
 });
 
 
@@ -78,12 +79,12 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
     // 提取数据
     if (request.action === "extractGoodData") {
-        injectScript(sendResponse);
+        injectScript("reload", sendResponse);
         return true; // 保持响应异步
     }
 })
 
-function injectScript(sendResponse) {
+function injectScript(type, sendResponse) {
     if (isPinduoduoPage()) {
         injectFile = "scripts/injects/pdd_collect_inject.js";
         console.log("Pinduoduo page");
@@ -95,13 +96,13 @@ function injectScript(sendResponse) {
         console.log("Tmall page");
     } else if (isXiaohongshuPage()) {
         injectFile = "scripts/injects/xhs_collect_inject.js";
-        console.log("Tmall page");
+        console.log("Xhs page");
     } else if (isDouyinPage()) {
         injectFile = "scripts/injects/douyin_collect_inject.js";
-        console.log("Tmall page");
+        console.log("Douyin page");
     } else if (isKuaishouPage()) {
         injectFile = "scripts/injects/kuaishou_collect_inject.js";
-        console.log("Tmall page");
+        console.log("Kuaishou page");
     } else {
         // injectFile = "scripts/injects/demo_inject.js";
         console.log("Default page");
@@ -113,8 +114,10 @@ function injectScript(sendResponse) {
 
         // 设置 badge 标识-开始提取
         chrome.runtime.sendMessage({ action: "markPending" });
+        // 🟡 标记标题为正在采集
+        markTitle('ing');
 
-        injectScriptOnce(injectFile);
+        injectScriptOnce(injectFile, type);
         sendResponse({ success: true });
     } else {
         console.log("Not support page");
@@ -123,11 +126,19 @@ function injectScript(sendResponse) {
 }
 
 // 将外部脚本动态插入页面
-function injectScriptOnce(file) {
+function injectScriptOnce(file, type) {
     if (!chrome.runtime.getURL(file)) {
         console.log("Inject js not exists:" + file);
     }
-    if (!document.querySelector(`script[src="${chrome.runtime.getURL(file)}"]`)) {
+    const oldScript = document.querySelector(`script[src="${chrome.runtime.getURL(file)}"]`);
+    // 如果是重新加载脚本，则先移除旧的脚本
+    if (type === "reload") {
+        if (oldScript) {
+            console.log("Removing old script:", file);
+            oldScript.remove();
+        }
+    }
+    if (!oldScript) {
         console.log("Inject js :" + file);
         const script = document.createElement("script");
         script.src = chrome.runtime.getURL(file); // 获取扩展内的脚本路径
@@ -138,6 +149,20 @@ function injectScriptOnce(file) {
     }
 }
 
+function markTitle(status) {
+    const originalTitle = document.title.replace(/^✅ |^🟡 /, ''); // 去除旧标记
+
+    let newTitle = '';
+    if (status === 'ing') {
+        newTitle = `🟡 ${originalTitle}`;
+    } else if (status === 'done') {
+        newTitle = `✅ ${originalTitle}`;
+    } else {
+        newTitle = originalTitle; // 清除标记
+    }
+
+    document.title = newTitle;
+}
 
 // 监听 DOM 变化（适用于 SPA 页面）
 const observer = new MutationObserver((mutationsList) => {

@@ -81,8 +81,43 @@ function getCachedData(tag) {
     });
 }
 
+
+function back2Home() {
+    // 返回功能集合页面
+    window.location.href = "/popup/popup.html";
+}
+
+
+// 开始从页面提取数据
+async function fetchGoodData() {
+    if (!confirm("是否开始提取页面数据？")) {
+        console.log("用户取消了提取操作");
+        return;
+    }
+    console.log("开始从页面提取数据");
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        tabs.forEach(tab => {
+            if (!tab.url || !tab.id || !tab.url.startsWith("http"))
+                return;
+
+            chrome.tabs.sendMessage(tab.id, {
+                app: "GoodsCollect",
+                action: "extractGoodData"
+            }, (response) => {
+                console.log(`Tab ${tab.id} responded:`, response);
+            });
+        });
+        alert("开始数据提取，请稍后刷新列表！");
+    });
+
+    console.log("开始从页面手动触发提取数据--完成");
+};
+
 window.utils = {
     exportToExcel,
     getCachedData,
+    back2Home,
+    fetchGoodData,
     // ...其它工具函数
 };

@@ -58,16 +58,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // 消息监听-标记任务状态
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  const tabId = sender.tab?.id;
-  if (!tabId) return;
+    const tabId = sender.tab?.id;
+    if (!tabId) return;
 
-  if (message.action === "markCompleted") {
-    chrome.action.setBadgeText({ tabId, text: "✔" });
-    chrome.action.setBadgeBackgroundColor({ tabId, color: "#28a745" }); // 绿色
-  } else if (message.action === "markPending") {
-    chrome.action.setBadgeText({ tabId, text: "●" });
-    chrome.action.setBadgeBackgroundColor({ tabId, color: "#ffc107" }); // 黄色
-  }
+    if (message.action === "markCompleted") {
+        chrome.action.setBadgeText({ tabId, text: "✔" });
+        chrome.action.setBadgeBackgroundColor({ tabId, color: "#28a745" }); // 绿色
+    } else if (message.action === "markPending") {
+        chrome.action.setBadgeText({ tabId, text: "●" });
+        chrome.action.setBadgeBackgroundColor({ tabId, color: "#ffc107" }); // 黄色
+    }
 });
 
 

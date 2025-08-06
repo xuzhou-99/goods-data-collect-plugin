@@ -4,7 +4,7 @@ const tableBody = document.getElementById("result");
 const websiteSelect = document.getElementById('websiteSelect');
 
 // 返回功能集合页面
-document.getElementById("back").addEventListener("click", () => { window.location.href = "/popup/popup.html"; });
+document.getElementById("back").addEventListener("click", utils.back2Home);
 
 // 查询
 document.getElementById("filterBtn").addEventListener("click", loadGoodsData);
@@ -71,64 +71,9 @@ function clearGoodsData() {
 
 // 开始从页面提取数据
 function fetchGoodData() {
-    console.log("开始从页面提取数据");
-
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (!tabs || tabs.length === 0) {
-            alert("请打开目标页面！");
-            return;
-        }
-
-        const activeTab = tabs[0];
-        console.log("插件进入页面：", activeTab);
-        if (!isTargetPage(activeTab.url)) {
-            console.log("当前页面不支持插件");
-            tableBody.innerHTML = "<tr><td colspan='6'>未能获取数据</td></tr>";
-            return;
-        }
-
-        chrome.scripting.executeScript(
-            {
-                target: { tabId: activeTab.id },
-                files: ["/scripts/content.js"], // 内容脚本路径
-            },
-            () => {
-                if (chrome.runtime.lastError) {
-                    alert("注入脚本失败：" + chrome.runtime.lastError.message);
-                } else {
-                    chrome.tabs.sendMessage(activeTab.id, { app: "GoodsCollect", action: "extractGoodData" }, (response) => {
-                        console.log("数据：", response)
-                        if (response && response.success) {
-
-                            const goodsInfo = {
-                                tag: getTag(),
-                                goodsInfo: response.goodInfo
-                            }
-
-                            chrome.runtime.sendMessage({ app: "GoodsCollect", action: "saveGoodsInfoData", data: goodsInfo }, (response) => {
-                                console.log("保存数据：", response);
-                                if (response.success) {
-                                    // alert("数据已保存");
-                                    console.log("数据已保存");
-                                    loadGoodsData();
-                                } else {
-                                    // alert("数据保存失败：" + response.message);
-                                    console.log("数据保存失败：" + response.message);
-                                }
-                            });
-
-                        } else {
-                            tableBody.innerHTML = "<tr><td colspan='6'>未能获取数据</td></tr>";
-                            // alert("拉取数据失败：" + response.message);
-                            console.log("拉取数据失败", response ? response.message : '');
-                        }
-                    });
-                }
-            }
-        );
-    });
-
-    console.log("开始从页面提取数据--完成");
+    console.log("手动触发数据提取");
+    utils.fetchGoodData();
+    loadGoodsData();
 };
 
 // 加载表格
@@ -169,7 +114,7 @@ function renderTable(data) {
     // 总时长
     const countElement = document.createElement("p");
     countElement.style = "font-weight: bold;"
-    countElement.textContent = "Total: " + data.length + " 条商品信息";
+    countElement.textContent = "Total: " + data.length + " 条数据";
 
     totalInfo.appendChild(countElement);
 };
@@ -199,7 +144,6 @@ async function exportToExcel() {
 
 
     utils.exportToExcel("抖音数据", headers, rows)
-
 }
 
 
