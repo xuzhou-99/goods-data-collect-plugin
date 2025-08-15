@@ -26,9 +26,6 @@
         if (!url) {
             return false;
         }
-
-        // todo: targetPage_url regex
-        // const check = url.includes("xiaohongshu");
         const check = url.includes("api/sns/web/v1/feed");
         console.debug("[PluginInject] isTargetPage:", check);
         return check;
@@ -45,9 +42,6 @@
         if (!url) {
             return false;
         }
-
-        // todo: targetPage_url regex
-        // const check = url.includes("xiaohongshu");
         const check = url.includes("www.xiaohongshu.com/explore");
         console.debug("[PluginInject] isTargetPage:", check);
         return check;

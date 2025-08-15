@@ -93,7 +93,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                     action: "reExtractGoodData"
                 }, (response) => {
                     if (chrome.runtime.lastError) {
-                        console.error(`标签页 ${tab.id} 发送消息失败:`, chrome.runtime.lastError);
+                        console.warn(`标签页 ${tab.id} 发送消息失败:`, chrome.runtime.lastError);
                         return;
                     }
                     console.log(`标签页 ${tab.id} 响应:`, response);

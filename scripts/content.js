@@ -5,11 +5,6 @@ let currentTabOrder;
 let injectFile;
 let isScriptInjected = false;
 
-// // 重置 reload 状态
-// window.__COLLECT_PLUGIN_RELOAD__ = false;
-// window.__COLLECT_PLUGIN_LOADED__ = false;
-// // 重置 reload_helper 状态
-// window.__COLLECT_RELOAD_HELPER_READY__ = false;
 
 async function getTabOrder() {
     if (currentTabOrder !== undefined) return currentTabOrder;
@@ -70,7 +65,7 @@ window.addEventListener("load", async () => {
 
     // 然后注入业务脚本
     injectScript('load', (response) => {
-        console.log("Init load inject:", response);
+        console.log("Page load finished inject:", response);
     })
 
 });
@@ -81,9 +76,24 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
     // 提取数据
     if (request.action === "reExtractGoodData") {
-        injectScript("reload", (response) => {
-            console.log("Reload inject:", response);
-        });
+        // 如果是重新加载模式，触发重新执行数据提取
+        console.log("Triggering data extraction after script reload");
+        // 延迟一点时间确保脚本完全初始化
+        setTimeout(() => {
+
+            // 设置 badge 标识-开始提取
+            chrome.runtime.sendMessage({ app: "Sys", action: "markProcess", status: "pending" });
+            // 🟡 标记标题为正在采集
+            markTitle('ing');
+
+            // 触发自定义事件，通知注入脚本重新执行数据提取
+            window.dispatchEvent(new CustomEvent('__COLLECT_PLUGIN_RELOAD_COMPLETE__', {
+                detail: {
+                    scriptFile: injectFile,
+                    timestamp: Date.now()
+                }
+            }));
+        }, 500);
         return true; // 保持响应异步
     }
 })
@@ -99,7 +109,9 @@ const observer = new MutationObserver((mutationsList) => {
                 // 检查是否是弹窗（通过 class="ant-modal-root" 来判断）
 
                 // 插入脚本
-                injectScriptOnce(injectFile);
+                injectScript('load', (response) => {
+                    console.log("Load inject:", response);
+                });
             });
         }
     });
@@ -116,6 +128,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 });
 
+
+
+
+// --------------------------------------- 工具 --------------------------------------- //
 
 // 工具函数
 function throttle(func, limit) {
@@ -195,6 +211,9 @@ const PLATFORM_CONFIG = {
 };
 
 function getInjectFile(url = window.location.href) {
+    if (injectFile) {
+        return injectFile; // 如果已经设置了 injectFile，直接返回 
+    }
     for (const [_, config] of Object.entries(PLATFORM_CONFIG)) {
         if (config.test(url)) return config.script;
     }
@@ -203,24 +222,13 @@ function getInjectFile(url = window.location.href) {
 
 async function injectScript(type, sendResponse) {
     injectFile = getInjectFile();
-    console.log("Inject file:", injectFile);
     if (!injectFile) {
-        console.log("Not support page");
         sendResponse({ success: false, message: "Not support page" });
         return;
     }
 
-    await getTabOrder();
-
-
-    // 设置 badge 标识-开始提取
-    chrome.runtime.sendMessage({ app: "Sys", action: "markProcess", status: "pending" });
-    // 🟡 标记标题为正在采集
-    markTitle('ing');
-
-    const result = injectScriptOnce(injectFile, type);
-    console.log("Inject result:", result);
-    sendResponse({ success: true });
+    const result = await injectScriptOnce(injectFile, type);
+    sendResponse({ success: result });
 }
 
 
@@ -229,8 +237,10 @@ async function injectScript(type, sendResponse) {
  * @param {string} file - 扩展内的脚本路径（如 "js/content.js"）
  * @param {"load"|"reload"} [type="load"] - 注入模式："load"（默认）或 "reload"（强制重新加载）
  */
-function injectScriptOnce(file, type = "load") {
+async function injectScriptOnce(file, type = "load") {
     if (!file) return false;
+
+    await getTabOrder();
 
     // 保证 reload_helper 先加载完成
     const ensureReloadHelperReady = (onReady) => {
@@ -287,25 +297,18 @@ function injectScriptOnce(file, type = "load") {
     // 获取脚本的完整 URL
     const scriptUrl = chrome.runtime.getURL(file);
 
-    // 如果是重新加载模式，强制移除旧脚本并重置状态
-    if (type === "reload") {
-        const oldScript = document.querySelector(`script[src="${scriptUrl}"]`);
-        if (oldScript) {
-            console.log("Removing old script:", file);
-            oldScript.remove();
-        }
-
-        // 重置注入状态
-        window.__COLLECT_PLUGIN_RELOAD__ = true;
-        window.__COLLECT_PLUGIN_LOADED__ = false;
-        console.log("Old script removed, will inject new script:", file);
-    }
-
     // 重新检查脚本是否已存在（避免重复注入）
     const existingScript = document.querySelector(`script[src="${scriptUrl}"]`);
-    if (!existingScript && !window.__COLLECT_PLUGIN_LOADED__) {
+    if (!existingScript && !isScriptInjected) {
+        console.log("Try Injecting script:", file);
+
         ensureReloadHelperReady(() => {
             console.log("Injecting script:", file);
+
+            // 设置 badge 标识-开始提取
+            chrome.runtime.sendMessage({ app: "Sys", action: "markProcess", status: "pending" });
+            // 🟡 标记标题为正在采集
+            markTitle('ing');
 
             const script = document.createElement("script");
             script.src = scriptUrl;
@@ -314,29 +317,12 @@ function injectScriptOnce(file, type = "load") {
             // 脚本加载完成后的处理
             script.onload = function () {
                 console.log("Script loaded successfully:", file);
-                // 设置一个标记，表示脚本已加载完成
-                window.__COLLECT_PLUGIN_LOADED__ = true;
-
-                // 如果是重新加载模式，触发重新执行数据提取
-                if (type === "reload") {
-                    console.log("Triggering data extraction after script reload");
-                    // 延迟一点时间确保脚本完全初始化
-                    setTimeout(() => {
-                        // 触发自定义事件，通知注入脚本重新执行数据提取
-                        window.dispatchEvent(new CustomEvent('__COLLECT_PLUGIN_RELOAD_COMPLETE__', {
-                            detail: {
-                                scriptFile: file,
-                                timestamp: Date.now()
-                            }
-                        }));
-                    }, 500);
-                }
+                isScriptInjected = true;
             };
 
             script.onerror = function () {
                 console.error("Failed to load script:", file);
-                // 脚本加载失败时重置状态
-                window.__COLLECT_PLUGIN_LOADED__ = false;
+                isScriptInjected = false;
             };
 
             // 将脚本添加到页面
@@ -348,7 +334,7 @@ function injectScriptOnce(file, type = "load") {
     // 如果脚本已存在或正在注入中，返回 false
     if (existingScript) {
         console.log("Script already exists:", file);
-    } else if (window.__COLLECT_PLUGIN_LOADED__) {
+    } else if (isScriptInjected) {
         console.log("Script injection in progress:", file);
     }
 
@@ -362,7 +348,7 @@ function injectScriptOnce(file, type = "load") {
     await getTabOrder();
 
     injectScript('load', (response) => {
-        console.log(response);
+        console.log('Init load inject:', response);
     })
 
 })();
