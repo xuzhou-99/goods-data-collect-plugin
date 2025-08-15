@@ -18,6 +18,14 @@ var goodInfo = {
 */
 
 /**
+ * distinct flag
+ * @type {boolean}
+ * @default false
+ * @description save data distinct
+ */
+const distinctFlag = false;
+
+/**
  * Goods data tag enum
  */
 const goodsTag = {
@@ -29,13 +37,52 @@ const goodsTag = {
 }
 
 
-/**
- * distinct flag
- * @type {boolean}
- * @default false
- * @description save data distinct
- */
-const distinctFlag = false;
+// 平台配置 - 定义各平台的列头和数据字段映射
+const platformConfigs = {
+    douyin: {
+        name: "抖音",
+        columns: ["标题", "链接", "用户名", "用户ID", "抖音号", "备注"],
+        fields: ["title", "url", "author.nickname", "author.sec_uid", "author.unique_id", "statusExplain"],
+        description: "采集抖音帖子信息，包括链接、标题、用户名、用户ID等"
+    },
+    kuaishou: {
+        name: "快手",
+        columns: ["标题", "链接", "用户名", "用户ID", "备注"],
+        fields: ["title", "url", "author.nickname", "author.user_id", "statusExplain"],
+        description: "采集快手帖子信息，包括链接、标题、用户名、用户ID、备注等"
+    },
+    pdd: {
+        name: "拼多多",
+        columns: ["链接", "商品名称", "店铺名称", "商品价格", "销量", "备注"],
+        fields: ["goodsLink", "goodsName", "mallName", "goodsPrice", "goodsSales", "statusExplain"],
+        description: "采集拼多多商品信息，商品的链接，标题，店铺名，价格，销量"
+    },
+    taobao: {
+        name: "淘宝",
+        columns: ["链接", "商品名称", "店铺名称", "商品价格", "销量", "备注"],
+        fields: ["shareLink", "goodsName", "mallName", "goodsPrice", "goodsSales", "statusExplain"],
+        description: "采集淘宝商品信息，包括链接、名称、店铺、价格、销量等"
+    },
+    tmall: {
+        name: "天猫",
+        columns: ["链接", "商品名称", "店铺名称", "商品价格", "销量", "备注"],
+        fields: ["shareLink", "goodsName", "mallName", "goodsPrice", "goodsSales", "statusExplain"],
+        description: "采集天猫商品信息，包括链接、名称、店铺、价格、销量等"
+    },
+    xhs: {
+        name: "小红书",
+        columns: ["标题", "链接", "用户名", "用户ID", "备注", "状态"],
+        fields: ["title", "url", "author.nickname", "author.user_id", "note", "statusExplain"],
+        description: "采集小红书帖子信息，包括标题、链接、作者信息等"
+    }
+};
+
+export function getPlatformConfig(tag) {
+    return new Promise((resolve) => {
+        resolve(platformConfigs[tag] || null);
+    });
+}
+
 
 /**
  * save goods data

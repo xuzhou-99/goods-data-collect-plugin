@@ -2,7 +2,6 @@
 
 // 使用 storage.saveGoodsData(request.data) 的方式调用模块化方法
 import * as storage from './background/storage.js';
-import * as utils from './background/utils.js';
 
 
 chrome.runtime.onInstalled.addListener(function () {
@@ -17,19 +16,11 @@ let tabOrderMap = {};
 // 标签页创建时，分配序列号
 chrome.tabs.onCreated.addListener((tab) => {
     const tabId = tab.id;
-    const sequenceNumber = utils.generateUniqueSequence(); // 生成唯一序列号
-    tabOrderMap[tab.id] = sequenceNumber;
-    console.log(`Tab ${tab.id} 分配序列号：${sequenceNumber}`);
+    const sequenceNumber = generateUniqueSequence(); // 生成唯一序列号
+    tabOrderMap[tabId] = sequenceNumber;
+    console.log(`Tab ${tabId} 分配序列号：${sequenceNumber}`);
 });
 
-// // 标签页更新完成时，发送消息 -- 页面未加载插件脚本，会导致消息发送失败
-// chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-//     console.log(`Tab ${tabId} 更新状态：${changeInfo.status}`, changeInfo);
-//     if (changeInfo.status === 'complete' && tabOrderMap[tabId]) {
-//         const message = { action: "assignTabOrder", tabId: tabId, order: tabOrderMap[tabId] };
-//         chrome.tabs.sendMessage(tabId, message);
-//     }
-// });
 
 // 监听 tab 的关闭事件，清理序列号
 chrome.tabs.onRemoved.addListener((tabId) => {
@@ -42,7 +33,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.app !== "Sys") {
         return;
     }
-    console.debug("Sys receive message:", request, sender)
+    console.debug("[Message]Sys receive message:", request, sender)
+
+    const tabId = sender.tab?.id;
+    if (!tabId) return;
 
     // 监听消息以返回序列号
     if (request.action === "getTabOrder") {
@@ -54,33 +48,71 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
         return true; // 异步响应
     }
-});
 
-// 消息监听-标记任务状态
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    const tabId = sender.tab?.id;
-    if (!tabId) return;
-
-    if (message.action === "markCompleted") {
-        chrome.action.setBadgeText({ tabId, text: "✔" });
-        chrome.action.setBadgeBackgroundColor({ tabId, color: "#28a745" }); // 绿色
-    } else if (message.action === "markPending") {
-        chrome.action.setBadgeText({ tabId, text: "●" });
-        chrome.action.setBadgeBackgroundColor({ tabId, color: "#ffc107" }); // 黄色
+    // 消息监听-标记任务状态
+    if (request.action === "markProcess") {
+        if (request.status === "completed") {
+            chrome.action.setBadgeText({ tabId, text: "✔" });
+            chrome.action.setBadgeBackgroundColor({ tabId, color: "#28a745" }); // 绿色
+        } else if (request.status === "pending") {
+            chrome.action.setBadgeText({ tabId, text: "●" });
+            chrome.action.setBadgeBackgroundColor({ tabId, color: "#ffc107" }); // 黄色
+        }
     }
 });
 
 
 
-
 // --------------------------------------- 商品数据采集 插件 --------------------------------------- //
+
+// 创建右键菜单
+chrome.runtime.onInstalled.addListener(() => {
+    chrome.contextMenus.create({
+        id: "reExtractAllTabs",
+        title: "重新提取所有标签页数据",
+        contexts: ["all"] // 适用于所有页面
+    });
+});
+
+// 监听右键菜单点击
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+    if (info.menuItemId === "reExtractAllTabs") {
+        console.log("用户点击了【重新提取所有标签页数据】");
+
+        // 1. 查询所有标签页（包括非活动标签页）
+        const allTabs = await chrome.tabs.query({
+            url: ["http://*/*", "https://*/*"] // 合法模式
+        });
+
+
+        // 2. 遍历所有标签页，发送消息
+        allTabs.forEach(tab => {
+            if (tab.id && tab.url?.startsWith("http")) { // 确保是 HTTP/HTTPS 页面
+                chrome.tabs.sendMessage(tab.id, {
+                    app: "GoodsCollect",
+                    action: "reExtractGoodData"
+                }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        console.error(`标签页 ${tab.id} 发送消息失败:`, chrome.runtime.lastError);
+                        return;
+                    }
+                    console.log(`标签页 ${tab.id} 响应:`, response);
+                });
+            }
+        });
+
+        // 3. 可选：通知用户操作已完成
+        console.log("已向所有标签页发送重新提取数据的请求！");
+    }
+});
+
 
 // 消息监听-商品数据采集
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     if (request.app !== "GoodsCollect") {
         return;
     }
-    console.debug("GoodsCollect receive message:", request, sender)
+    console.debug("[Message]GoodsCollect receive message:", request, sender)
 
 
     // 注入脚本
@@ -94,8 +126,8 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     }
 
     // 提取商品数据
-    if (request.action === "extractGoodData") {
-        console.log("[background] extractGoodData:", request);
+    if (request.action === "reExtractGoodData") {
+        console.log("[background] reExtractGoodData:", request);
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (!tabs || tabs.length === 0) {
                 console.info("没有找到当前活动的标签页");
@@ -149,7 +181,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         return true; // 表示异步响应
     }
 
-
     // 保存商品信息
     if (request.action === "saveGoodsInfoData") {
         console.log("[background] saveGoodsInfoData:", request);
@@ -181,83 +212,31 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             });
         return true; // 表示异步响应
     }
+
+    // 获取平台配置
+    if (request.action === "getPlatformConfig") {
+        console.log("[background] getPlatformConfig:", request);
+
+        storage.getPlatformConfig(request.tag)
+            .then((data) => {
+                console.log("查询数据成功：", data)
+                sendResponse(data);
+            })
+            .catch((error) => {
+                console.info("查询数据出错：", error)
+                sendResponse([]);
+            });
+        return true; // 表示异步响应
+    }
 })
 
 
-// // 存储请求和响应数据
-// const requestDetailsMap = new Map();
-// const requestHeadersMap = new Map();
-
-// chrome.webRequest.onBeforeRequest.addListener(
-//     function (details) {
-//         // console.debug("Script request detected:", details);
-//         if (details && details.url) {
-//             if (details.url.includes("mtop.taobao.pcdetail.data.get")) {
-//                 console.debug("Script request detected:", details);
-//                 // 存储请求详情
-//                 requestDetailsMap.set(details.requestId, details);
-
-//                 // 将请求和响应详情发送给内容脚本
-//                 chrome.tabs.sendMessage(details.tabId, {
-//                     type: "script-request",
-//                     requestDetails: details,
-//                 });
-//             }
-//         }
-
-//     },
-//     { urls: ["*://h5api.m.tmall.com/*"], types: ["script"] }
-// );
-
-// // 监听请求头
-// chrome.webRequest.onBeforeSendHeaders.addListener(
-//     function (details) {
-//         if (requestDetailsMap.has(details.requestId)) {
-//             console.debug("Script request headers detected:", details);
-//             // 存储请求头
-//             requestHeadersMap.set(details.requestId, details.requestHeaders);
-//         }
-//     },
-//     { urls: ["*://h5api.m.tmall.com/*"], types: ["script"] },
-//     ["requestHeaders"]
-// );
-
-// // 监听 script 响应
-// chrome.webRequest.onResponseStarted.addListener(
-//     function (details) {
-//         // console.debug("Script response completed:", details);
-//         if (requestDetailsMap.has(details.requestId)) {
-//             console.debug("Script response started:", details);
-//             // 获取请求详情
-//             const requestDetails = requestDetailsMap.get(details.requestId);
-//             // requestDetailsMap.delete(details.requestId);
-
-//         }
-//     },
-//     { urls: ["*://h5api.m.tmall.com/*"], types: ["script"] }
-// );
-
-// // 监听 script 响应
-// chrome.webRequest.onCompleted.addListener(
-//     function (details) {
-//         if (requestDetailsMap.has(details.requestId)) {
-//             console.debug("Script response completed:", details);
-//             // 获取请求详情
-//             const requestDetails = requestDetailsMap.get(details.requestId);
-//             const requestHeaders = requestHeadersMap.get(details.requestId);
-//             requestDetailsMap.delete(details.requestId);
-//             requestHeadersMap.delete(details.requestId);
-//         }
-//     },
-//     { urls: ["*://h5api.m.tmall.com/*"], types: ["script"] }
-// );
 
 
 // --------------------------------------- 账号 插件 --------------------------------------- //
 
 
 // --------------------------------------- 账号配置 --------------------------------------- //
-
 
 
 // --------------------------------------- 通用工具 --------------------------------------- //

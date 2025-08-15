@@ -15,7 +15,8 @@
         "activeTab",
         "webRequest",
         "webRequestBlocking",
-        "declarativeNetRequest"
+        "declarativeNetRequest",
+        "contextMenus"
     ],
     "host_permissions": [
         "*://*.pinduoduo.com/*",

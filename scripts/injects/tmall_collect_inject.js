@@ -1,7 +1,18 @@
 
 (function () {
 
-    console.log("[PluginInject] [Tmall] inject js, url:", window.location.href);
+    console.log("[PluginInject] [Target Website page] inject js, url:", window.location.href);
+    // // 如果是 reload 模式，强制重新执行（即使标记存在）
+    // const isReloadMode = window.__COLLECT_PLUGIN_RELOAD__ === true;
+
+    // if (window.__COLLECT_PLUGIN_INJECTED__ && !isReloadMode) {
+    //     console.log("[PluginInject] Plugin already injected, skip this time.");
+    //     return;
+    // }
+
+    // // 标记为已注入（如果是 reload 模式，稍后会被重置）
+    // window.__COLLECT_PLUGIN_INJECTED__ = true;
+    // window.__COLLECT_PLUGIN_RELOAD__ = false; // 重置 reload 标记
 
 
     /**
@@ -55,6 +66,7 @@
 
                 mallId: "", // 店铺ID
                 mallName: "", // 店铺名称
+                pSource: 'Tmall',
             };
             if (targetData && targetData.data) {
                 // 商品的链接，标题，店铺名，价格，销量
@@ -96,20 +108,19 @@
         }
     }
 
-    function extractAndSaveGoodData(responseData) {
+    function extractAndSaveGoodData(type, responseData) {
         extractGoodData(responseData, (sendResponse) => {
             if (sendResponse.success) {
                 const goodInfo = sendResponse.goodInfo;
-                goodInfo.pSource = 'Tmall';
                 const goodsInfo = {
-                    tag: 'taobao',
+                    tag: type,
                     goodsInfo: goodInfo
                 }
                 console.log("[PluginInject] Plugin success, send to window, dataInfo: ", goodsInfo);
 
                 window.postMessage({
                     type: 'extract-data-response',
-                    tag: 'taobao',
+                    tag: type,
                     goodInfo: goodInfo,
                 }, "*");
 
@@ -137,7 +148,7 @@
                     if (res && isTargetPage(res.api)) {
                         console.debug("[PluginInject] Hijack JSONP response:", res);
 
-                        extractAndSaveGoodData(res);
+                        extractAndSaveGoodData('taobao', res);
                     }
 
                     // call original callback

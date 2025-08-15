@@ -3,11 +3,17 @@
 (function () {
 
     console.log("[PluginInject] [Target Website page] inject js, url:", window.location.href);
-    if (window.__COLLECT_PLUGIN_INJECTED__) {
-        // 已经注入过，直接返回
-        return;
-    }
-    window.__COLLECT_PLUGIN_INJECTED__ = true;
+    // // 如果是 reload 模式，强制重新执行（即使标记存在）
+    // const isReloadMode = window.__COLLECT_PLUGIN_RELOAD__ === true;
+
+    // if (window.__COLLECT_PLUGIN_INJECTED__ && !isReloadMode) {
+    //     console.log("[PluginInject] Plugin already injected, skip this time.");
+    //     return;
+    // }
+
+    // // 标记为已注入（如果是 reload 模式，稍后会被重置）
+    // window.__COLLECT_PLUGIN_INJECTED__ = true;
+    // window.__COLLECT_PLUGIN_RELOAD__ = false; // 重置 reload 标记
 
     /**
      * is target page
@@ -16,7 +22,7 @@
      * @param {*} url 
      * @returns 
      */
-    function isTargetPage(url) {
+    function isTargetPageRequest(url) {
         if (!url) {
             return false;
         }
@@ -35,7 +41,7 @@
      * @param {www.xiaohongshu.com/explore} url 
      * @returns 
      */
-    function isTargetPage2(url) {
+    function isTargetPageUrl(url) {
         if (!url) {
             return false;
         }
@@ -47,19 +53,19 @@
         return check;
     }
 
-    function extractAndSaveGoodData(responseData) {
+    function extractAndSaveGoodData(type, responseData) {
         extractGoodData(responseData, (sendResponse) => {
             if (sendResponse.success) {
                 const goodInfo = sendResponse.goodInfo;
                 const goodsInfo = {
-                    tag: 'xhs',
+                    tag: type,
                     goodsInfo: goodInfo
                 }
                 console.log("[PluginInject] Plugin success, send to window, dataInfo: ", goodsInfo);
 
                 window.postMessage({
                     type: 'extract-data-response',
-                    tag: 'xhs',
+                    tag: type,
                     goodInfo: goodInfo,
                 }, "*");
 
@@ -171,15 +177,15 @@
 
 
         XMLHttpRequest.prototype.open = function (method, url, ...args) {
-            console.debug("[PluginInject] XHR request:", { method, url, args, xhr: this });
+            // console.debug("[PluginInject] XHR request:", { method, url, args, xhr: this });
             this._xhs_hijack_url = url; // 保存url到实例
             this._xhs_hijack_method = method;
             return originalOpen.apply(this, [method, url, ...args]);
         };
 
         XMLHttpRequest.prototype.send = function (...args) {
-            console.debug("[PluginInject] XHR response:", { url: this._xhs_hijack_url, args, xhr: this });
-            if (isTargetPage(this._xhs_hijack_url)) {
+            // console.debug("[PluginInject] XHR response:", { url: this._xhs_hijack_url, args, xhr: this });
+            if (isTargetPageRequest(this._xhs_hijack_url)) {
                 console.info("[PluginInject] XHR response: url" + this._xhs_hijack_url, { url: this._xhs_hijack_url, args, xhr: this });
                 // 兼容 readyState 4
                 this.addEventListener("readystatechange", function () {
@@ -205,7 +211,7 @@
                                 console.warn("[PluginInject] response is not valid JSON");
                             }
 
-                            extractAndSaveGoodData(responseData);
+                            extractAndSaveGoodData('xhs', responseData);
 
                         } catch (error) {
                             console.warn("[PluginInject] Parse XHR request Failed!:", error);
@@ -237,7 +243,7 @@
                         }
 
 
-                        extractAndSaveGoodData(responseData);
+                        extractAndSaveGoodData('xhs', responseData);
 
                     } catch (error) {
                         console.warn("[PluginInject] Parse XHR request Failed!:", error);
@@ -256,9 +262,9 @@
     const injectOtherHijack = () => {
         console.info("[PluginInject] Other Inject");
 
-
         // 仅在详情页等 document 请求时尝试提取 window.__INITIAL_STATE__
         function extractFromInitialState() {
+            console.info("[PluginInject] 当前页面为小红书详情页，尝试提取 window.__INITIAL_STATE__");
             try {
                 let state;
                 if (window.__INITIAL_STATE__) {
@@ -270,20 +276,32 @@
                     }
                 }
                 console.log("[PluginInject] 页面window.__INITIAL_STATE__提取成功", state);
-                extractAndSaveGoodData(state);
+                extractAndSaveGoodData('xhs', state);
             } catch (e) {
                 console.warn("[PluginInject] 提取 window.__INITIAL_STATE__ 失败", e);
             }
         }
 
-        if (isTargetPage2(window.location.href)) {
-            console.info("[PluginInject] 当前页面为小红书详情页，尝试提取 window.__INITIAL_STATE__");
-            // 页面加载后延迟提取，确保数据已注入
-            window.addEventListener('load', () => {
-                setTimeout(extractFromInitialState, 1000);
-            });
-        }
+        // 使用通用的重新注入数据提取机制
+        console.log("[PluginInject] 检查 setupReloadDataExtraction 函数:", typeof setupReloadDataExtraction);
+        console.log("[PluginInject] window.setupReloadDataExtraction:", typeof window.setupReloadDataExtraction);
 
+
+        if (isTargetPageUrl(window.location.href)) {
+            if (typeof setupReloadDataExtraction === 'function') {
+                console.log("[PluginInject] 使用通用重新注入机制");
+                setupReloadDataExtraction(() => {
+                    extractFromInitialState();
+                }, '小红书数据提取');
+            } else {
+                console.log("[PluginInject] 使用降级处理机制");
+                // 降级处理：如果没有通用机制，使用原来的逻辑
+                // 页面加载后延迟提取，确保数据已注入
+                window.addEventListener('load', () => {
+                    setTimeout(extractFromInitialState, 1000);
+                });
+            }
+        }
 
         console.info("[PluginInject] Other Inject Finished");
     };

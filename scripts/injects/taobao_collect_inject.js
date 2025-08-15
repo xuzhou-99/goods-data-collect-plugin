@@ -1,7 +1,18 @@
 
 (function () {
 
-    console.log("[PluginInject] [Taobao] inject js, url:", window.location.href);
+    console.log("[PluginInject] [Target Website page] inject js, url:", window.location.href);
+    // // 如果是 reload 模式，强制重新执行（即使标记存在）
+    // const isReloadMode = window.__COLLECT_PLUGIN_RELOAD__ === true;
+
+    // if (window.__COLLECT_PLUGIN_INJECTED__ && !isReloadMode) {
+    //     console.log("[PluginInject] Plugin already injected, skip this time.");
+    //     return;
+    // }
+
+    // // 标记为已注入（如果是 reload 模式，稍后会被重置）
+    // window.__COLLECT_PLUGIN_INJECTED__ = true;
+    // window.__COLLECT_PLUGIN_RELOAD__ = false; // 重置 reload 标记
 
 
     function isTargetPage(url) {
@@ -41,6 +52,7 @@
 
                 mallId: "", // 店铺ID
                 mallName: "", // 店铺名称
+                pSource: 'taobao',
             };
             if (targetData && targetData.data) {
                 // 商品的链接，标题，店铺名，价格，销量
@@ -80,13 +92,13 @@
         }
     }
 
-    function extractAndSaveGoodData(responseData) {
+    function extractAndSaveGoodData(type, responseData) {
         extractGoodData(responseData, (sendResponse) => {
             if (sendResponse.success) {
                 const goodInfo = sendResponse.goodInfo;
-                goodInfo.pSource = 'taobao';
+
                 const goodsInfo = {
-                    tag: 'taobao',
+                    tag: type,
                     goodsInfo: goodInfo
                 }
                 console.log("[PluginInject] Plugin success, send to window, dataInfo: ", goodsInfo);
@@ -94,7 +106,7 @@
                 // send message to content.js
                 window.postMessage({
                     type: 'extract-data-response',
-                    tag: 'taobao',
+                    tag: type,
                     goodInfo: goodInfo,
                 }, "*");
 
@@ -116,7 +128,7 @@
                         const responseData = JSON.parse(this.responseText);
                         console.debug("[PluginInject] Hijack XHR response:", responseData);
 
-                        extractAndSaveGoodData(responseData)
+                        extractAndSaveGoodData('taobao', responseData)
 
                     } catch (error) {
                         console.warn("[PluginInject] Parse XHR request Failed!:", error);

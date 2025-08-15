@@ -125,19 +125,19 @@ function extractGoodData(dataSource, sendResponse) {
 }
 
 
-function extractAndSaveGoodData(responseData) {
+function extractAndSaveGoodData(type, responseData) {
     extractGoodData(responseData, (sendResponse) => {
         if (sendResponse.success) {
             const dataInfo = sendResponse.goodInfo;
             const goodsInfo = {
-                tag: 'kuaishou',
+                tag: type,
                 goodsInfo: dataInfo
             }
             console.log("[PluginInject] Plugin success, send to window, dataInfo: ", goodsInfo);
 
             window.postMessage({
                 type: 'extract-data-response',
-                tag: 'kuaishou',
+                tag: type,
                 goodInfo: dataInfo,
             }, "*");
 
@@ -279,11 +279,17 @@ function getBestQualityUrl(videoResource) {
 (function () {
 
     console.log("[PluginInject] [Target Website page] inject js, url:", window.location.href);
-    if (window.__COLLECT_PLUGIN_INJECTED__) {
-        // 已经注入过，直接返回
-        return;
-    }
-    window.__COLLECT_PLUGIN_INJECTED__ = true;
+    // // 如果是 reload 模式，强制重新执行（即使标记存在）
+    // const isReloadMode = window.__COLLECT_PLUGIN_RELOAD__ === true;
+
+    // if (window.__COLLECT_PLUGIN_INJECTED__ && !isReloadMode) {
+    //     console.log("[PluginInject] Plugin already injected, skip this time.");
+    //     return;
+    // }
+
+    // // 标记为已注入（如果是 reload 模式，稍后会被重置）
+    // window.__COLLECT_PLUGIN_INJECTED__ = true;
+    // window.__COLLECT_PLUGIN_RELOAD__ = false; // 重置 reload 标记
 
     /**
     * Hijack Axios Request
@@ -303,7 +309,7 @@ function getBestQualityUrl(videoResource) {
                         console.info("[PluginInject] Hijack Axios url:" + responseData.config.url + "response:", responseData);
 
                         // todo: extract data
-                        extractAndSaveGoodData(responseData);
+                        extractAndSaveGoodData('kuaishou', responseData);
 
                     }
                     return responseData;
@@ -333,7 +339,7 @@ function getBestQualityUrl(videoResource) {
                     console.info("[PluginInject] Hijack Fetch response:", { url, data });
 
                     // todo: extract data
-                    extractAndSaveGoodData(data);
+                    extractAndSaveGoodData('kuaishou', data);
                 });
             }
             return response;
@@ -384,7 +390,7 @@ function getBestQualityUrl(videoResource) {
                                 console.warn("[PluginInject] response is not valid JSON");
                             }
 
-                            extractAndSaveGoodData(responseData);
+                            extractAndSaveGoodData('kuaishou', responseData);
 
                         } catch (error) {
                             console.warn("[PluginInject] Parse XHR request Failed!:", error);
@@ -416,7 +422,7 @@ function getBestQualityUrl(videoResource) {
                                 console.warn("[PluginInject] response is not valid JSON");
                             }
 
-                            extractAndSaveGoodData(responseData);
+                            extractAndSaveGoodData('kuaishou', responseData);
 
                         } catch (error) {
                             console.warn("[PluginInject] Parse XHR request Failed!:", error);
@@ -448,7 +454,7 @@ function getBestQualityUrl(videoResource) {
                         }
 
 
-                        extractAndSaveGoodData(responseData);
+                        extractAndSaveGoodData('kuaishou', responseData);
 
                     } catch (error) {
                         console.warn("[PluginInject] Parse XHR request Failed!:", error);
@@ -488,7 +494,7 @@ function getBestQualityUrl(videoResource) {
                     if (res && res.api == 'mtop.taobao.pcdetail.data.get') {
                         console.debug("[PluginInject] Hijack JSONP response:", res);
 
-                        extractAndSaveGoodData(res);
+                        extractAndSaveGoodData('kuaishou', res);
                     }
 
                     // call original callback
@@ -533,6 +539,7 @@ function getBestQualityUrl(videoResource) {
 
         // 仅在详情页等 document 请求时尝试提取 window.__APOLLO_STATE__
         function extractFromInitialState() {
+            console.info("[PluginInject] 当前页面为快手详情页，尝试提取 window.__APOLLO_STATE__");
             try {
                 let state;
                 if (window.__APOLLO_STATE__) {
@@ -544,7 +551,7 @@ function getBestQualityUrl(videoResource) {
                     }
                 }
                 console.log("[PluginInject] 页面 window.__APOLLO_STATE__ 提取成功", state);
-                extractAndSaveGoodData(state);
+                extractAndSaveGoodData('kuaishou', state);
             } catch (e) {
                 console.warn("[PluginInject] 页面 window.__APOLLO_STATE__ 提取失败", e);
             }
@@ -552,11 +559,16 @@ function getBestQualityUrl(videoResource) {
 
         console.debug("[PluginInject] Other Url:", window.location.href);
         if (isTargetPage(window.location.href)) {
-            console.info("[PluginInject] 当前页面为小红书详情页，尝试提取 window.__INITIAL_STATE__");
-            // 页面加载后延迟提取，确保数据已注入
-            window.addEventListener('load', () => {
-                setTimeout(extractFromInitialState, 1000);
-            });
+
+            // 使用通用的重新注入数据提取机制
+            if (typeof setupReloadDataExtraction === 'function') {
+                setupReloadDataExtraction(extractFromInitialState, '快手数据提取');
+            } else {
+                // 降级处理：如果没有通用机制，使用原来的逻辑
+                window.addEventListener('load', () => {
+                    setTimeout(extractFromInitialState, 1000);
+                });
+            }
         }
 
         console.debug("[PluginInject] Other Inject Finished");

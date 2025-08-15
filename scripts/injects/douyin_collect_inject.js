@@ -110,19 +110,19 @@ function extractGoodData(dataSource, sendResponse) {
 }
 
 
-function extractAndSaveGoodData(responseData) {
+function extractAndSaveGoodData(type, responseData) {
     extractGoodData(responseData, (sendResponse) => {
         if (sendResponse.success) {
             const goodInfo = sendResponse.goodInfo;
             const goodsInfo = {
-                tag: 'douyin',
+                tag: type,
                 goodsInfo: goodInfo
             }
             console.log("[PluginInject] Plugin success, send to window, dataInfo: ", goodsInfo);
 
             window.postMessage({
                 type: 'extract-data-response',
-                tag: 'douyin',
+                tag: type,
                 goodInfo: goodInfo,
             }, "*");
 
@@ -139,11 +139,17 @@ function extractAndSaveGoodData(responseData) {
 (function () {
 
     console.log("[PluginInject] [Target Website page] inject js, url:", window.location.href);
-    if (window.__COLLECT_PLUGIN_INJECTED__) {
-        // 已经注入过，直接返回
-        return;
-    }
-    window.__COLLECT_PLUGIN_INJECTED__ = true;
+    // // 如果是 reload 模式，强制重新执行（即使标记存在）
+    // const isReloadMode = window.__COLLECT_PLUGIN_RELOAD__ === true;
+
+    // if (window.__COLLECT_PLUGIN_INJECTED__ && !isReloadMode) {
+    //     console.log("[PluginInject] Plugin already injected, skip this time.");
+    //     return;
+    // }
+
+    // // 标记为已注入（如果是 reload 模式，稍后会被重置）
+    // window.__COLLECT_PLUGIN_INJECTED__ = true;
+    // window.__COLLECT_PLUGIN_RELOAD__ = false; // 重置 reload 标记
 
 
     /**
@@ -194,7 +200,7 @@ function extractAndSaveGoodData(responseData) {
                                 console.warn("[PluginInject] response is not valid JSON");
                             }
 
-                            extractAndSaveGoodData(responseData);
+                            extractAndSaveGoodData('douyin', responseData);
 
                         } catch (error) {
                             console.warn("[PluginInject] Parse XHR request Failed!:", error);
@@ -226,7 +232,7 @@ function extractAndSaveGoodData(responseData) {
                                 console.warn("[PluginInject] response is not valid JSON");
                             }
 
-                            extractAndSaveGoodData(responseData);
+                            extractAndSaveGoodData('douyin', responseData);
 
                         } catch (error) {
                             console.warn("[PluginInject] Parse XHR request Failed!:", error);
@@ -258,7 +264,7 @@ function extractAndSaveGoodData(responseData) {
                         }
 
 
-                        extractAndSaveGoodData(responseData);
+                        extractAndSaveGoodData('douyin', responseData);
 
                     } catch (error) {
                         console.warn("[PluginInject] Parse XHR request Failed!:", error);
@@ -294,6 +300,7 @@ function extractAndSaveGoodData(responseData) {
 
         // 仅在详情页等 document 请求时尝试提取 window.__INITIAL_STATE__
         function extractFromInitialState() {
+            console.info("[PluginInject] 当前页面为抖音详情页，尝试提取 window.__INITIAL_STATE__");
             try {
                 let state;
                 if (window.__INITIAL_STATE__) {
@@ -305,7 +312,7 @@ function extractAndSaveGoodData(responseData) {
                     }
                 }
                 console.log("[PluginInject] 页面window.__INITIAL_STATE__提取成功", state);
-                extractAndSaveGoodData(state);
+                extractAndSaveGoodData('douyin', state);
             } catch (e) {
                 console.warn("[PluginInject] 提取 window.__INITIAL_STATE__ 失败", e);
             }
@@ -313,11 +320,16 @@ function extractAndSaveGoodData(responseData) {
 
         console.debug("[PluginInject] Other Url:", window.location.href);
         if (isTargetPage(window.location.href)) {
-            console.info("[PluginInject] 当前页面为小红书详情页，尝试提取 window.__INITIAL_STATE__");
-            // 页面加载后延迟提取，确保数据已注入
-            window.addEventListener('load', () => {
-                setTimeout(extractFromInitialState, 1000);
-            });
+
+            // 使用通用的重新注入数据提取机制
+            if (typeof setupReloadDataExtraction === 'function') {
+                setupReloadDataExtraction(extractFromInitialState, '抖音数据提取');
+            } else {
+                // 降级处理：如果没有通用机制，使用原来的逻辑
+                window.addEventListener('load', () => {
+                    setTimeout(extractFromInitialState, 1000);
+                });
+            }
         }
 
         console.debug("[PluginInject] Other Inject Finished");
