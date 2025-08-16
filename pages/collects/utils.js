@@ -91,6 +91,23 @@ export function getPlatformConfig(tag) {
     });
 }
 
+// 保存自动提取配置
+export function saveAutoWorkConfig(tag, config) {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+            app: "GoodsCollect", action: "updatePlatformConfig",
+            platform: tag,
+            config: config || {}
+        }, (response) => {
+            if (response && response.success) {
+                resolve(response);
+            } else {
+                reject(new Error("保存配置失败"));
+            }
+        });
+    });
+}
+
 // 加载分页数据
 export function loadGoodsData(tag, page, pageSize) {
     console.log("加载分页数据")
@@ -147,36 +164,15 @@ export async function fetchGoodData() {
             return;
         }
 
-        console.log("开始从页面提取数据...");
+        console.log("开始重新提取数据...");
 
-        // 获取当前活动标签页
-        const tabs = await new Promise((resolve) => {
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                resolve(tabs);
+        // 向background脚本发送消息
+        return new Promise((resolve) => {
+            chrome.runtime.sendMessage({ app: "GoodsCollect", action: "reExtractGoodData" }, (response) => {
+                console.debug("消息结果：", response);
+                resolve(response);
             });
         });
-
-        const activeTab = tabs[0];
-        if (!activeTab?.url?.startsWith("http")) {
-            console.warn("当前标签页不是 HTTP(S) 页面，无法提取数据");
-            alert("请打开商品页面后再试！");
-            return;
-        }
-
-        // 向内容脚本发送消息
-        chrome.tabs.sendMessage(
-            activeTab.id,
-            { app: "GoodsCollect", action: "reExtractGoodData" },
-            (response) => {
-                if (chrome.runtime.lastError) {
-                    console.error("发送消息失败:", chrome.runtime.lastError);
-                    alert("数据提取失败，请检查控制台日志！");
-                    return;
-                }
-                console.log("数据提取请求已发送，响应:", response);
-                alert("数据提取已触发，请稍后刷新列表！");
-            }
-        );
     } catch (error) {
         console.error("提取数据时发生错误:", error);
         alert("发生错误，请检查控制台日志！");

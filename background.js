@@ -62,7 +62,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 
-
 // --------------------------------------- 商品数据采集 插件 --------------------------------------- //
 
 // 创建右键菜单
@@ -70,7 +69,7 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.create({
         id: "reExtractAllTabs",
         title: "重新提取所有标签页数据",
-        contexts: ["all"] // 适用于所有页面
+        contexts: ["action"] // 适用于所有页面
     });
 });
 
@@ -79,30 +78,8 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     if (info.menuItemId === "reExtractAllTabs") {
         console.log("用户点击了【重新提取所有标签页数据】");
 
-        // 1. 查询所有标签页（包括非活动标签页）
-        const allTabs = await chrome.tabs.query({
-            url: ["http://*/*", "https://*/*"] // 合法模式
-        });
+        reExtractGoodData();
 
-
-        // 2. 遍历所有标签页，发送消息
-        allTabs.forEach(tab => {
-            if (tab.id && tab.url?.startsWith("http")) { // 确保是 HTTP/HTTPS 页面
-                chrome.tabs.sendMessage(tab.id, {
-                    app: "GoodsCollect",
-                    action: "reExtractGoodData"
-                }, (response) => {
-                    if (chrome.runtime.lastError) {
-                        console.warn(`标签页 ${tab.id} 发送消息失败:`, chrome.runtime.lastError);
-                        return;
-                    }
-                    console.log(`标签页 ${tab.id} 响应:`, response);
-                });
-            }
-        });
-
-        // 3. 可选：通知用户操作已完成
-        console.log("已向所有标签页发送重新提取数据的请求！");
     }
 });
 
@@ -115,52 +92,12 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     console.debug("[Message]GoodsCollect receive message:", request, sender)
 
 
-    // 注入脚本
-    if (request.action === "injectContentScript") {
-        console.log("[background] injectContentScript:", request);
-        chrome.scripting.executeScript({
-            target: { tabId: sender.tab.id, frameIds: [request.frameId] },
-            files: ["scripts/content.js"],
-        });
-        sendResponse({ success: true });
-    }
-
-    // 提取商品数据
+    // 重新提取
     if (request.action === "reExtractGoodData") {
         console.log("[background] reExtractGoodData:", request);
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            if (!tabs || tabs.length === 0) {
-                console.info("没有找到当前活动的标签页");
-                sendResponse({ success: false, message: "未找到活动标签页" });
-                return;
-            }
-
-            const activeTab = tabs[0];
-            console.log("当前活动页面：", activeTab);
-
-            chrome.scripting.executeScript(
-                {
-                    target: { tabId: activeTab.id },
-                    files: ['scripts/content.js'], // 确保路径正确
-                },
-                () => {
-                    if (chrome.runtime.lastError) {
-                        console.info("注入脚本时出错：", chrome.runtime.lastError.message);
-                        sendResponse({ success: false, message: "注入脚本失败" });
-                    } else {
-                        chrome.tabs.sendMessage(activeTab.id, request, (response) => {
-                            if (chrome.runtime.lastError) {
-                                console.info("发送消息时出错：", chrome.runtime.lastError.message);
-                                sendResponse({ success: false, message: "发送消息失败" });
-                            } else {
-                                sendResponse(response);
-                            }
-                        });
-                    }
-                }
-            );
+        reExtractGoodData().then((result) => {
+            sendResponse(result);
         });
-
         return true; // 表示异步响应
     }
 
@@ -228,9 +165,68 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             });
         return true; // 表示异步响应
     }
+
+    // 更新平台配置
+    if (request.action === "updatePlatformConfig") {
+        console.log("[background] updatePlatformConfig:", request);
+
+        storage.updatePlatformConfig(request.platform, request.config)
+            .then((data) => {
+                console.log("更新平台配置成功：", data)
+                sendResponse({ success: true, data: data });
+            })
+            .catch((error) => {
+                console.info("更新平台配置出错：", error)
+                sendResponse({ success: false, error: error.message });
+            });
+        return true; // 表示异步响应
+    }
 })
 
 
+/**
+ * 重新提取所有标签页的商品数据
+ */
+async function reExtractGoodData() {
+    console.log("开始向所有标签页发送重新提取数据的请求！");
+
+    // 1. 查询所有标签页（包括非活动标签页）
+    const allTabs = await chrome.tabs.query({
+        url: ["http://*/*", "https://*/*"] // 合法模式
+    });
+
+    const resultInfo = {
+        success: 0,
+        count: 0
+    };
+
+    // 2. 创建一个包含所有发送消息操作的Promise数组
+    const messagePromises = allTabs.map(tab => {
+        return new Promise(async (resolve) => {
+            if (tab.id && tab.url?.startsWith("http")) { // 确保是 HTTP/HTTPS 页面
+                resultInfo.count += 1;
+                try {
+                    const response = await chrome.tabs.sendMessage(tab.id, {
+                        app: "GoodsCollect",
+                        action: "reExtractGoodData"
+                    });
+                    resultInfo.success += 1;
+                    console.log(`标签页 ${tab.id} 响应:`, response);
+                } catch (error) {
+                    console.warn(`标签页 ${tab.id} 发送消息失败:`, error);
+                }
+            }
+            resolve();
+        });
+    });
+
+    // 3. 等待所有消息发送完成
+    await Promise.all(messagePromises);
+
+    // 4. 通知用户操作已完成并返回统计结果
+    console.log(`已完成向 ${resultInfo.count} 个标签页发送请求，成功 ${resultInfo.success} 个`);
+    return resultInfo;
+}
 
 
 // --------------------------------------- 账号 插件 --------------------------------------- //

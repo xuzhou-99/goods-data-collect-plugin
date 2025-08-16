@@ -41,45 +41,96 @@ const goodsTag = {
 const platformConfigs = {
     douyin: {
         name: "抖音",
+        autoWork: "1",
+        editAutoWork: "0",
         columns: ["标题", "链接", "用户名", "用户ID", "抖音号", "备注"],
         fields: ["title", "url", "author.nickname", "author.sec_uid", "author.unique_id", "statusExplain"],
         description: "采集抖音帖子信息，包括链接、标题、用户名、用户ID等"
     },
     kuaishou: {
         name: "快手",
+        autoWork: "1",
         columns: ["标题", "链接", "用户名", "用户ID", "备注"],
         fields: ["title", "url", "author.nickname", "author.user_id", "statusExplain"],
         description: "采集快手帖子信息，包括链接、标题、用户名、用户ID、备注等"
     },
     pdd: {
         name: "拼多多",
+        autoWork: "1",
         columns: ["链接", "商品名称", "店铺名称", "商品价格", "销量", "备注"],
         fields: ["goodsLink", "goodsName", "mallName", "goodsPrice", "goodsSales", "statusExplain"],
         description: "采集拼多多商品信息，商品的链接，标题，店铺名，价格，销量"
     },
     taobao: {
         name: "淘宝",
+        autoWork: "1",
         columns: ["链接", "商品名称", "店铺名称", "商品价格", "销量", "备注"],
         fields: ["shareLink", "goodsName", "mallName", "goodsPrice", "goodsSales", "statusExplain"],
         description: "采集淘宝商品信息，包括链接、名称、店铺、价格、销量等"
     },
     tmall: {
         name: "天猫",
+        autoWork: "1",
         columns: ["链接", "商品名称", "店铺名称", "商品价格", "销量", "备注"],
         fields: ["shareLink", "goodsName", "mallName", "goodsPrice", "goodsSales", "statusExplain"],
         description: "采集天猫商品信息，包括链接、名称、店铺、价格、销量等"
     },
     xhs: {
         name: "小红书",
+        autoWork: "1",
         columns: ["标题", "链接", "用户名", "用户ID", "备注", "状态"],
         fields: ["title", "url", "author.nickname", "author.user_id", "note", "statusExplain"],
         description: "采集小红书帖子信息，包括标题、链接、作者信息等"
     }
 };
 
-export function getPlatformConfig(tag) {
-    return new Promise((resolve) => {
-        resolve(platformConfigs[tag] || null);
+export function getPlatformConfig(platform) {
+    return new Promise((resolve, reject) => {
+
+        if (!platformConfigs[platform]) {
+            reject(new Error("平台不存在"));
+            return;
+        }
+
+        // 保存到 Chrome 存储
+        chrome.storage.local.get([`platformConfig_${platform}`], function (result) {
+            if (!result) {
+                resolve(platformConfigs[platform]);
+            } else {
+                resolve(result[`platformConfig_${platform}`]);
+            }
+        });
+    });
+}
+
+/**
+ * 更新平台配置
+ * @param {string} platform 平台标识
+ * @param {object} config 配置对象
+ * @returns {Promise}
+ */
+export function updatePlatformConfig(platform, config) {
+    return new Promise((resolve, reject) => {
+        try {
+            if (!platformConfigs[platform]) {
+                reject(new Error("平台不存在"));
+                return;
+            }
+
+            // 更新配置
+            platformConfigs[platform] = { ...platformConfigs[platform], ...config };
+
+            // 保存到 Chrome 存储
+            chrome.storage.local.set({
+                [`platformConfig_${platform}`]: platformConfigs[platform]
+            }, () => {
+                console.info("平台配置更新成功:", platform, config);
+                resolve({ success: true, data: platformConfigs[platform] });
+            });
+        } catch (error) {
+            console.error("更新平台配置失败:", error);
+            reject(error);
+        }
     });
 }
 

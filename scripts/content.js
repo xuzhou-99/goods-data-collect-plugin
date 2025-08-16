@@ -94,7 +94,13 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                 }
             }));
         }, 500);
+        sendResponse({ success: true, message: "Data extraction triggered" });
         return true; // 保持响应异步
+    }
+
+    // 接收后台脚本发送的消息
+    if (message.type === "script-request") {
+        console.log("Received script request details:", message);
     }
 })
 
@@ -119,14 +125,6 @@ const observer = new MutationObserver((mutationsList) => {
 
 // 开始观察 DOM 变化
 // observer.observe(document.body, { childList: true, subtree: true });
-
-
-// 接收后台脚本发送的消息
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === "script-request") {
-        console.log("Received script request details:", message);
-    }
-});
 
 
 
@@ -346,6 +344,8 @@ async function injectScriptOnce(file, type = "load") {
 
 (async function () {
     await getTabOrder();
+
+    injectFile = getInjectFile();
 
     injectScript('load', (response) => {
         console.log('Init load inject:', response);

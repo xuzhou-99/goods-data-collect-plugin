@@ -25,8 +25,16 @@
                 <option value="taobao">淘宝</option>
                 <option value="tmall">天猫</option> -->
             </select>
-            <button id="filterBtn">刷新列表</button>
-            <button id="extractInfo">提取信息</button>
+            <button id="filterBtn">刷新</button>
+            <!-- 自动提取开关 -->
+            <div class="auto-work-toggle">
+                <span class="toggle-label">自动提取：</span>
+                <div class="toggle-switch" id="autoWorkToggle">
+                    <div class="toggle-slider"></div>
+                </div>
+            </div>
+
+            <button id="extractInfo">重新提取</button>
             <button id="clearAll">清空</button>
             <button id="exportAll">导出</button>
             <button id="back">返回</button>
@@ -51,7 +59,7 @@
     <script type="module" src="/background/storage.js"></script>
     <script type="module" src="./utils.js"></script>
     <script type="module" src="collect.js"></script>
-    <script src="/libs/xlsx.full.min.js"></script> 
+    <script src="/libs/xlsx.full.min.js"></script>
 </body>
 
 </html>

@@ -219,6 +219,11 @@ table tbody td[colspan="6"] {
     gap: 5px;
   }
 
+  .auto-work-toggle {
+    justify-content: center;
+    margin: 5px 0;
+  }
+
   table {
     font-size: 12px;
   }
@@ -247,4 +252,68 @@ table tbody td[colspan="6"] {
 
 .select-wrapper select option {
   padding: 10px;
+}
+
+/* 自动提取开关样式 */
+.auto-work-toggle {
+  /* display: flex; */
+  align-items: center;
+  gap: 8px;
+  margin: 0 10px;
+}
+
+.toggle-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 50px;
+  height: 24px;
+  background-color: #ccc;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch.active {
+  background-color: #4CAF50;
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch.active .toggle-slider {
+  transform: translateX(26px);
+}
+
+.toggle-switch:hover {
+  opacity: 0.8;
+}
+
+.toggle-switch:active .toggle-slider {
+  transform: scale(0.9);
+}
+
+.toggle-switch.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.toggle-switch.disabled .toggle-slider {
+  background-color: #f0f0f0;
+  /* 禁用时滑块变灰 */
 }

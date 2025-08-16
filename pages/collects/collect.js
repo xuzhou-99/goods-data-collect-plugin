@@ -12,7 +12,8 @@ const elements = {
     clearAll: document.getElementById("clearAll"),
     exportAll: document.getElementById("exportAll"),
     back: document.getElementById("back"),
-    platformDesc: document.getElementById("platform-desc")
+    platformDesc: document.getElementById("platform-desc"),
+    // autoWorkToggle: document.getElementById("autoWorkToggle")
 };
 
 let platformConfig = {};
@@ -51,25 +52,12 @@ async function init() {
 // 初始化UI
 function initUI() {
     // 设置平台描述
-    elements.platformDesc.textContent = platformConfig.description ||
-        `${platformConfig.name}数据采集功能`;
+    updatePlatformDescription();
 
-    // 初始化下拉框（单平台模式）
-    elements.websiteSelect.innerHTML = '';
-    const option = document.createElement('option');
-    option.value = currentPlatform;
-    option.textContent = platformConfig.name;
-    elements.websiteSelect.appendChild(option);
-    elements.websiteSelect.disabled = true; // 单平台模式下禁用选择
+    initPlatformOptions();
 
-    // 如果需要可以多选其他平台
-    // for (const [key, value] of Object.entries(platformMap)) {
-    //     const opt = document.createElement('option');
-    //     opt.value = key;
-    //     opt.textContent = value;
-    //     if (key === platform) opt.selected = true;
-    //     platformSelect.appendChild(opt);
-    // }
+    // 初始化自动提取开关
+    initAutoWorkToggle();
 
     // 渲染表头
     renderTableHeader();
@@ -89,6 +77,14 @@ function bindEvents() {
     elements.exportAll.addEventListener("click", exportToExcel);
     // 平台变更处理
     elements.websiteSelect.addEventListener('change', handlePlatformChange);
+
+
+    // const isLocked = platformConfig.editAutoWork === "0";
+    // if (!isLocked) {
+    //     // 自动提取开关
+    //     elements.autoWorkToggle.addEventListener("click", toggleAutoWork);
+    // }
+
 }
 
 
@@ -110,6 +106,7 @@ async function handlePlatformChange() {
     });
 
     updatePlatformDescription();
+    initAutoWorkToggle(); // 更新自动提取开关状态
     renderTableHeader();
     loadGoodsData();
 }
@@ -118,6 +115,92 @@ async function handlePlatformChange() {
 function updatePlatformDescription() {
     elements.platformDesc.textContent = platformConfig.description ||
         `${platformConfig.name}数据采集功能`;
+}
+
+// 初始化平台选项
+function initPlatformOptions() {
+    // 初始化下拉框（单平台模式）
+    elements.websiteSelect.innerHTML = '';
+    const option = document.createElement('option');
+    option.value = currentPlatform;
+    option.textContent = platformConfig.name;
+    elements.websiteSelect.appendChild(option);
+    elements.websiteSelect.disabled = true; // 单平台模式下禁用选择
+
+    // 如果需要可以多选其他平台
+    // for (const [key, value] of Object.entries(platformMap)) {
+    //     const opt = document.createElement('option');
+    //     opt.value = key;
+    //     opt.textContent = value;
+    //     if (key === platform) opt.selected = true;
+    //     platformSelect.appendChild(opt);
+    // }
+}
+
+// 初始化自动提取开关
+function initAutoWorkToggle() {
+    // const autoWork = platformConfig.autoWork === "1";
+    // const isLocked = platformConfig.editAutoWork === "0";
+    // if (autoWork) {
+    //     elements.autoWorkToggle.classList.add('active');
+    // } else {
+    //     elements.autoWorkToggle.classList.remove('active');
+    // }
+    // if (isLocked) {
+    //     elements.autoWorkToggle.classList.add('disabled');
+    //     elements.autoWorkToggle.setAttribute('title', '管理员已锁定自动提取功能'); // 悬停提示
+    // }
+}
+
+// 切换自动提取状态
+async function toggleAutoWork() {
+    try {
+        const currentState = elements.autoWorkToggle.classList.contains('active');
+        const newState = !currentState;
+
+        // 更新UI状态
+        if (newState) {
+            elements.autoWorkToggle.classList.add('active');
+        } else {
+            elements.autoWorkToggle.classList.remove('active');
+        }
+
+        // 更新平台配置
+        platformConfig.autoWork = newState ? "1" : "0";
+
+        // 保存到存储
+        await saveAutoWorkConfig();
+
+        // 显示提示
+        const status = newState ? "启用" : "停用";
+        utils.showToast(`自动提取已${status}`);
+
+    } catch (error) {
+        console.error("切换自动提取状态失败:", error);
+        utils.showToast("切换失败，请重试");
+
+        // 恢复原状态
+        const originalState = platformConfig.autoWork === "1";
+        if (originalState) {
+            elements.autoWorkToggle.classList.add('active');
+        } else {
+            elements.autoWorkToggle.classList.remove('active');
+        }
+    }
+}
+
+// 保存自动提取配置
+async function saveAutoWorkConfig() {
+    return new Promise(async (resolve, reject) => {
+        utils.saveAutoWorkConfig(currentPlatform, { autoWork: platformConfig.autoWork })
+            .then((response) => {
+                if (response && response.success) {
+                    resolve(response);
+                } else {
+                    reject(new Error("保存配置失败"));
+                }
+            });
+    });
 }
 
 // 渲染表头
@@ -182,8 +265,10 @@ async function clearGoodsData() {
 // 开始从页面提取数据
 async function fetchGoodData() {
     try {
-        await utils.fetchGoodData();
         utils.showToast("数据提取中...");
+        const response = await utils.fetchGoodData();
+        const noteDetail = `总计: ${response?.count || 0}页面，成功通知：${response?.success || 0}`;
+        utils.showToast(noteDetail);
         setTimeout(loadGoodsData, 1000); // 延迟加载等待数据写入
     } catch (error) {
         console.error("提取数据失败:", error);
