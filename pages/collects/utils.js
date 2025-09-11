@@ -148,6 +148,24 @@ export async function clearCachedData(tag) {
 }
 
 
+// 清空缓存数据
+export async function deleteCachedData(tag, id) {
+    if (!confirm("是否删除数据？")) {
+        console.log("用户取消了删除操作");
+        return;
+    }
+    
+    return new Promise((resolve) => {
+        console.log("开始删除缓存数据");
+        chrome.runtime.sendMessage({ app: "GoodsCollect", action: "deleteGoodsInfoData", tag: tag, id: id }, (response) => {
+            console.debug("消息结果：", response);
+            console.log("删除缓存数据--完成");
+            resolve(response);
+        });
+    });
+}
+
+
 
 
 /**

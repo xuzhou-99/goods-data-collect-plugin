@@ -92,12 +92,14 @@ export function getPlatformConfig(platform) {
             return;
         }
 
-        // 保存到 Chrome 存储
+        // 从 Chrome 存储获取配置
         chrome.storage.local.get([`platformConfig_${platform}`], function (result) {
-            if (!result) {
-                resolve(platformConfigs[platform]);
-            } else {
+            if (result && result[`platformConfig_${platform}`]) {
+                // 如果存储中有配置，使用存储的配置
                 resolve(result[`platformConfig_${platform}`]);
+            } else {
+                // 如果存储中没有配置，使用默认配置
+                resolve(platformConfigs[platform]);
             }
         });
     });
@@ -219,6 +221,21 @@ export function clearGoodsData(tag) {
         } else {
             resolve({ success: true });
         }
+    })
+}
+
+
+/**
+ * clear goods data
+ * @param {goods tag} tag 
+ * @param {goods id} id 
+ * @returns 
+ */
+export function deleteGoodsData(tag, id) {
+    // todo: delete goods data
+    return new Promise((resolve, reject) => {
+        console.log("deleteData tag:", tag, id);
+        resolve({ success: true });
     })
 }
 

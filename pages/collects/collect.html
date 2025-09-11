@@ -15,44 +15,74 @@
             <p id="platform-desc">功能说明：采集平台信息</p>
         </header>
 
-        <div class="buttons">
-            <!-- 新增下拉选择框 -->
-            <select id="websiteSelect">
-                <!-- <option value="xhs">小红书</option> -->
-                <!-- <option value="pdd">拼多多</option>
-                <option value="douyin">抖音</option>
-                <option value="kuaishou">快手</option>
-                <option value="taobao">淘宝</option>
-                <option value="tmall">天猫</option> -->
-            </select>
-            <button id="filterBtn">刷新</button>
-            <!-- 自动提取开关 -->
-            <div class="auto-work-toggle">
-                <span class="toggle-label">自动提取：</span>
-                <div class="toggle-switch" id="autoWorkToggle">
-                    <div class="toggle-slider"></div>
-                </div>
+        <!-- 控制面板 -->
+        <div class="control-panel">
+            <div class="control-group">
+                <label for="websiteSelect" class="control-label">平台</label>
+                <select id="websiteSelect" class="platform-select">
+                    <!-- 选项将通过JS动态生成 -->
+                </select>
             </div>
 
-            <button id="extractInfo">重新提取</button>
-            <button id="clearAll">清空</button>
-            <button id="exportAll">导出</button>
-            <button id="back">返回</button>
+            <!-- <div class="control-group">
+                <div class="auto-work-toggle">
+                    <span class="toggle-label">自动提取</span>
+                    <div class="toggle-switch" id="autoWorkToggle">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+            </div> -->
+            <!-- 操作按钮 -->
+            <div class="action-buttons">
+                <button id="filterBtn" class="btn btn-primary">
+                    <!-- <span class="btn-icon">🔄</span> -->
+                    刷新
+                </button>
+                <button id="extractInfo" class="btn btn-success">
+                    <!-- <span class="btn-icon">⚡</span> -->
+                    重新提取
+                </button>
+                <button id="clearAll" class="btn btn-danger">
+                    <!-- <span class="btn-icon">🗑️</span> -->
+                    清空
+                </button>
+                <button id="exportAll" class="btn btn-info">
+                    <!-- <span class="btn-icon">📊</span> -->
+                    导出
+                </button>
+                <button id="back" class="btn btn-secondary">
+                    <!-- <span class="btn-icon">←</span> -->
+                    首页
+                </button>
+            </div>
         </div>
 
-        <div id="totalInfo" class="info-box">总计信息将显示在此处。</div>
 
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr id="tableHeader">
-                        <!-- 列头将通过JS动态生成 -->
-                    </tr>
-                </thead>
-                <tbody id="result">
-                    <!-- 行数据将通过JS动态生成 -->
-                </tbody>
-            </table>
+        <!-- 统计信息区域 -->
+        <div class="stats-panel">
+            <div id="totalInfo" class="info-box">
+                <div class="loading-spinner" id="loadingSpinner" style="display: none;"></div>
+                <span id="statsText">总计信息将显示在此处。</span>
+            </div>
+        </div>
+
+        <!-- 数据表格区域 -->
+        <div class="table-section">
+            <div class="table-header">
+                <h3>采集数据</h3>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr id="tableHeader">
+                            <!-- 列头将通过JS动态生成 -->
+                        </tr>
+                    </thead>
+                    <tbody id="result">
+                        <!-- 行数据将通过JS动态生成 -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 

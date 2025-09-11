@@ -42,7 +42,7 @@
         if (!url) {
             return false;
         }
-        const check = url.includes("www.xiaohongshu.com/explore");
+        const check = url.includes("www.xiaohongshu.com/explore/");
         console.debug("[PluginInject] isTargetPage:", check);
         return check;
     }

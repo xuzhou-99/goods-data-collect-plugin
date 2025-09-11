@@ -150,6 +150,22 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         return true; // 表示异步响应
     }
 
+    // 清除商品信息
+    if (request.action === "deleteGoodsInfoData") {
+        console.log("[background] deleteGoodsInfoData:", request);
+
+        storage.deleteGoodsData(request.tag, request.id)
+            .then((data) => {
+                console.log("删除数据成功：", data)
+                sendResponse(data);
+            })
+            .catch((error) => {
+                console.info("删除数据出错：", error)
+                sendResponse(error);
+            });
+        return true; // 表示异步响应
+    }
+
     // 获取平台配置
     if (request.action === "getPlatformConfig") {
         console.log("[background] getPlatformConfig:", request);
