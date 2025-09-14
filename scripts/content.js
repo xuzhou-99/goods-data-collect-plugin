@@ -178,7 +178,7 @@ function getQueryParam(url, param) {
 const PLATFORM_CONFIG = {
     pinduoduo: {
         // 拼多多网站
-        test: url => /mobile\.(pinduoduo|yangkeduo)\.com\/(goods|good.*)\.html/.test(url),
+        test: url => /mobile\.(pinduoduo|yangkeduo)\.com\/(goods|good.*|goods.*)\.html/.test(url),
         script: "scripts/injects/pdd_collect_inject.js"
     },
     taobao: {

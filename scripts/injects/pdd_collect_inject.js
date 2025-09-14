@@ -4,7 +4,7 @@ function isTargetPage(url) {
     }
 
     // todo: targetPage_url regex
-    const check = /mobile\.(pinduoduo|yangkeduo)\.com\/(goods|good.*)\.html/.test(url);
+    const check = /mobile\.(pinduoduo|yangkeduo)\.com\/(goods|good.*|goods.*)\.html/.test(url);
     console.debug("[PluginInject] isTargetPage:", check);
     return check;
 }
